@@ -24,12 +24,14 @@ import {
 import type {
   Nullifier,
   RpContextResponse,
+  WorldIdkitResponse,
   WorldEnvironment,
   WorldVerifyResponse,
 } from "@/lib/types.ts";
 
 export interface WorldVerified {
   nullifier: Nullifier;
+  idkitResponse?: WorldIdkitResponse;
 }
 
 const APP_ID = process.env.NEXT_PUBLIC_WORLD_APP_ID ?? "";
@@ -88,7 +90,10 @@ export function WorldVerifyCard({
       if (!body.ok || !body.nullifier) {
         throw new Error(body.detail ?? "verification rejected");
       }
-      onVerified({ nullifier: body.nullifier });
+      onVerified({
+        nullifier: body.nullifier,
+        idkitResponse: result as unknown as WorldIdkitResponse,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
