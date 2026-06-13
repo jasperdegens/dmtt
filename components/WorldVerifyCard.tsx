@@ -98,14 +98,26 @@ function WorldRequestDialog({
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const handledResultRef = useRef<IDKitResult | null>(null);
   const handledErrorRef = useRef<string | null>(null);
+  // Tracks the previous `open` so the dedup latches are re-armed ONCE per request
+  // session — on the closed→open edge — and never on close.
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
+    const justOpened = open && !wasOpenRef.current;
+    wasOpenRef.current = open;
     if (open) {
+      // A fresh request session: allow exactly one success/error to be handled.
+      // We deliberately do NOT re-arm these latches on close: handleSuccess flips
+      // `open` to false as its first act, and re-arming there lets the success
+      // effect fire a SECOND time (onSuccess is an unstable dep, so it re-runs
+      // after the close re-render) — duplicating the transcript line.
+      if (justOpened) {
+        handledResultRef.current = null;
+        handledErrorRef.current = null;
+      }
       openRequest();
       return;
     }
-    handledResultRef.current = null;
-    handledErrorRef.current = null;
     setQrDataUrl(null);
     reset();
   }, [open, openRequest, reset]);
@@ -220,6 +232,10 @@ export function WorldVerifyCard({
   const [rpContext, setRpContext] = useState<RpContextResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Latches the verify+notify path so a single verified result drives exactly ONE
+  // onVerified call — even if the IDKit dialog fires its success effect more than
+  // once. Released only on a verify failure (below) so the user can retry.
+  const verifyingRef = useRef(false);
 
   const configured = APP_ID.startsWith("app_");
 
@@ -245,6 +261,11 @@ export function WorldVerifyCard({
 
   // The request succeeded — forward the proof to the server verify route.
   async function handleSuccess(result: IDKitResult) {
+    // Latch SYNCHRONOUSLY (before any await) so a re-fired success effect can't
+    // start a second verify and call onVerified twice — the cause of the doubled
+    // "Verified… / sign on yer Ledger" transcript lines.
+    if (verifyingRef.current) return;
+    verifyingRef.current = true;
     setOpen(false);
     setBusy(true);
     setError(null);
@@ -262,8 +283,11 @@ export function WorldVerifyCard({
         nullifier: body.nullifier,
         idkitResponse: result as unknown as WorldIdkitResponse,
       });
+      // Success: keep the latch closed — the chat advances past WORLD and this card
+      // unmounts; a stray re-fire must not re-notify.
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      verifyingRef.current = false; // verify failed — allow another attempt
     } finally {
       setBusy(false);
     }
