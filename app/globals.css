@@ -18,8 +18,10 @@
   --gold: #e0a83a;
   --gold-bright: #f4d06a;
   --gold-deep: #b07d1e;
+  --gold-extra-deep: #5d410e;
   --red: #c8423a;
   --red-deep: #9a2f25;
+  --red-extra-deep: #591913;
   --cream: #e8dcc0;
   --cream-bright: #f3e8cc;
   --navy: #14202b;
@@ -53,6 +55,7 @@
      title). The captain is width-driven (16:9 clips) so he stays anchored at the bottom. */
   --hero-top: clamp(48px, 10vh, 140px);
   --hero-h: clamp(300px, calc(var(--hero-top) + 21.5vw + 28px), 660px);
+  --chat-min-h: clamp(520px, 62vh, 700px);
 }
 
 * {
@@ -155,27 +158,49 @@ body.scene-locked {
 
 /* ============================== BUTTONS ============================== */
 .btn {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5em;
   font-family: var(--font-caps);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   font-size: 0.82rem;
   line-height: 1;
-  padding: 0.62rem 1.05rem;
-  border-radius: 7px;
-  border: 2px solid #2a1c0c;
+  min-height: 42px;
+  padding: 0.68rem 1.1rem;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--gold) 46%, #05080d);
+  background: #0d1925;
+  color: var(--cream-bright);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 238, 184, 0.13),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.42),
+    0 8px 18px rgba(0, 0, 0, 0.36);
   cursor: pointer;
   transition:
     transform 0.1s ease,
     filter 0.18s ease,
-    background 0.18s ease;
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
   -webkit-tap-highlight-color: transparent;
+}
+.btn:hover:not(:disabled) {
+  filter: brightness(1.07) saturate(1.06);
+  border-color: color-mix(in srgb, var(--gold-bright) 58%, #05080d);
+}
+.btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
+  outline-offset: 3px;
 }
 .btn:active {
   transform: translateY(1px);
+  box-shadow:
+    inset 0 1px 0 rgba(0, 0, 0, 0.36),
+    inset 0 -1px 0 rgba(255, 238, 184, 0.08),
+    0 4px 10px rgba(0, 0, 0, 0.34);
 }
 .btn:disabled {
   opacity: 0.5;
@@ -183,51 +208,58 @@ body.scene-locked {
   transform: none;
 }
 .btn--gold {
-  color: #2a1810;
-  background: var(--gold);
-  border-color: var(--gold-deep);
+  color: #241607;
+  background: #b8872d;
+  border-color: #6f4911;
+  text-shadow: 0 1px 0 rgba(255, 238, 184, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 247, 202, 0.32),
+    inset 0 -2px 0 rgba(54, 34, 5, 0.5),
+    0 10px 20px rgba(0, 0, 0, 0.38);
 }
 .btn--gold:hover:not(:disabled) {
-  background: var(--gold-bright);
+  background: #c99737;
 }
 .btn--ghost {
   color: var(--cream);
-  background: color-mix(in srgb, #000 42%, transparent);
-  border-color: color-mix(in srgb, var(--gold) 45%, transparent);
+  background: #0d1925;
+  border-color: color-mix(in srgb, var(--gold) 42%, #04070b);
 }
 .btn--ghost:hover:not(:disabled) {
-  background: color-mix(in srgb, #000 22%, transparent);
-  border-color: var(--gold);
+  background: #132436;
+  border-color: color-mix(in srgb, var(--gold-bright) 58%, #04070b);
 }
 .btn--danger {
-  color: #fdece2;
-  background: var(--red);
-  border-color: #5e1b14;
+  color: #fff1e8;
+  background: #862d26;
+  border-color: #5d1812;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.36);
 }
 .btn--danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--red) 86%, #fff);
+  background: #9a352d;
 }
 /* a larger primary button (the live "Check in") */
 .btn--lg {
   font-size: 0.95rem;
   letter-spacing: 0.1em;
+  min-height: 52px;
   padding: 0.95rem 1.2rem;
-  border-radius: 9px;
+  border-radius: 7px;
 }
 /* a secondary, outline-danger button (the live "Terminate") — destructive but quiet */
 .btn--danger-ghost {
-  color: color-mix(in srgb, var(--red) 92%, #fff);
-  background: transparent;
-  border-color: color-mix(in srgb, var(--red) 55%, transparent);
+  color: color-mix(in srgb, var(--red) 76%, #fff);
+  background: #0d1925;
+  border-color: color-mix(in srgb, var(--red) 58%, #05080d);
 }
 .btn--danger-ghost:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--red) 16%, transparent);
-  border-color: var(--red);
+  background: #1b1113;
+  border-color: color-mix(in srgb, var(--red) 78%, #05080d);
   color: #fdece2;
 }
 .btn--danger-ghost.is-on {
-  background: var(--red);
-  border-color: #5e1b14;
+  background: #862d26;
+  border-color: #5d1812;
   color: #fdece2;
 }
 
@@ -628,15 +660,15 @@ body.scene-locked {
   opacity: 0;
   visibility: hidden;
   transition:
-    opacity 0.18s ease,
-    visibility 0s linear 0.18s;
+    opacity 0.1s ease,
+    visibility 0s linear 0.1s;
   animation: pirateBob 5.5s ease-in-out infinite;
 }
 .pirate-media.is-active {
   opacity: 1;
   visibility: visible;
   transition:
-    opacity 0.18s ease,
+    opacity 0.1s ease,
     visibility 0s;
 }
 @keyframes pirateBob {
@@ -673,42 +705,51 @@ body.scene-locked {
   animation: pulse 1.8s ease-in-out infinite;
 }
 
-/* ============================== THE LEFT DOCK ============================== */
-/* A fixed left column that stacks the hero, the chat bubble (which flexes to fill),
-   and the countdown watch — one flow, no absolute-position collisions. Sits above
-   the foreground wave so its text/controls are never covered. The captain occupies
-   the right; the scene shows in the gap between. */
+/* ============================== THE CHAT DOCK ============================== */
+/* A fixed chat group balanced against the captain. On desktop it starts nearer the
+   centre of the page and is vertically centred; mobile resets to the portrait stack. */
 .dock {
   position: fixed;
-  top: var(--hero-h);
-  left: 0;
-  bottom: 0;
+  top: 50%;
+  left: clamp(64px, 8vw, 180px);
+  bottom: auto;
   z-index: 40;
-  width: min(470px, 46vw);
+  width: min(470px, 42vw);
   display: flex;
   flex-direction: column;
   gap: clamp(0.6rem, 1.4vh, 1rem);
-  padding: 0 clamp(16px, 2vw, 32px) clamp(16px, 2.5vh, 30px);
+  padding: 0;
+  transform: translateY(-50%);
   pointer-events: none;
 }
 .dock > * {
   pointer-events: auto;
 }
 .chat-shell {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: var(--chat-min-h);
   display: flex;
+  pointer-events: none;
 }
 .chat-shell > .bubble {
   flex: 1 1 auto;
+  min-height: var(--chat-min-h);
+  pointer-events: auto;
+}
+.chat-shell:has(.bubble--collapsed),
+.chat-shell > .bubble.bubble--collapsed {
   min-height: 0;
 }
 .dock__bottom {
-  flex: 0 0 auto;
+  position: fixed;
+  left: clamp(16px, 2vw, 32px);
+  bottom: clamp(16px, 2.5vh, 30px);
+  z-index: 42;
   display: flex;
   align-items: center;
   gap: 0.8rem;
   flex-wrap: wrap;
+  pointer-events: auto;
 }
 
 /* ============================== HERO ============================== */
@@ -769,12 +810,12 @@ body.scene-locked {
   /* a thin, DARK base stroke (deep gold / deep red) on the huge black letters; it flares
      bright only when lightning strikes (heroFlash brightens the whole element — the black
      fill stays black, the stroke lights up + glows). */
-  -webkit-text-stroke: clamp(1.4px, 0.26vw, 4px) var(--gold-deep);
+  -webkit-text-stroke: clamp(1.4px, 0.26vw, 4px) var(--gold-extra-deep);
   text-shadow: 0 4px 0 rgba(0, 0, 0, 0.55);
   animation: heroFlash 13s linear infinite;
 }
 .hero__title em {
-  -webkit-text-stroke-color: var(--red-deep);
+  -webkit-text-stroke-color: var(--red-extra-deep);
 }
 @keyframes heroFlash {
   0%,
@@ -852,24 +893,33 @@ body.scene-locked {
 
 /* ============================== ABOUT BUTTON + README MODAL ============================== */
 .about-btn {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
   padding: 0.5rem 0.95rem;
-  border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, #000 56%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 42%, #05080d);
+  border-radius: 6px;
+  background: rgba(8, 15, 23, 0.92);
   backdrop-filter: blur(3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 238, 184, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.46),
+    0 8px 24px rgba(0, 0, 0, 0.45);
   color: var(--cream);
   cursor: pointer;
   transition:
     border-color 0.15s ease,
-    background 0.15s ease;
+    filter 0.15s ease;
 }
 .about-btn:hover {
-  border-color: var(--gold);
-  background: color-mix(in srgb, #000 40%, transparent);
+  border-color: color-mix(in srgb, var(--gold-bright) 58%, #05080d);
+  filter: brightness(1.07) saturate(1.04);
+}
+.about-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
+  outline-offset: 3px;
 }
 .about-btn__icon {
   font-size: 1.25rem;
@@ -926,14 +976,21 @@ body.scene-locked {
   width: 2rem;
   height: 2rem;
   border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
-  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid color-mix(in srgb, var(--gold) 42%, #05080d);
+  background: #0d1925;
   color: var(--cream);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 238, 184, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.42);
   cursor: pointer;
 }
 .about-modal__close:hover {
-  background: rgba(0, 0, 0, 0.5);
-  border-color: var(--gold);
+  border-color: color-mix(in srgb, var(--gold-bright) 58%, #05080d);
+  filter: brightness(1.08);
+}
+.about-modal__close:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
+  outline-offset: 3px;
 }
 .about-modal__body {
   flex: 1 1 auto;
@@ -1114,7 +1171,7 @@ body.scene-locked {
 }
 .bubble__name {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   line-height: 1.1;
   color: var(--gold-bright);
   text-shadow: 0 1px 0 #6e1f17;
@@ -1165,7 +1222,11 @@ body.scene-locked {
   flex: 1 1 auto;
 }
 .bubble__actions-primary.is-on {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 45%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 247, 202, 0.34),
+    inset 0 -2px 0 rgba(54, 34, 5, 0.48),
+    0 0 0 2px color-mix(in srgb, var(--gold-bright) 28%, transparent),
+    0 10px 22px rgba(0, 0, 0, 0.42);
 }
 
 /* compact step ladder, shown in the bubble head */
@@ -1337,31 +1398,44 @@ body.scene-locked {
   gap: 0.5rem;
 }
 
-/* big tappable quick-reply pill — the primary chat affordance */
+/* tappable quick-reply hardware toggles — compact, but in the same brass/iron family */
 .qchip {
+  position: relative;
+  overflow: hidden;
   font-family: var(--font-caps);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   font-size: 0.78rem;
   padding: 0.55rem 1rem;
-  border-radius: 999px;
-  border: 1.5px solid color-mix(in srgb, var(--gold) 40%, transparent);
-  background: transparent;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--gold) 38%, #05080d);
+  background: #0d1925;
   color: var(--cream);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 238, 184, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.42);
   cursor: pointer;
   transition:
-    background 0.15s ease,
     border-color 0.15s ease,
-    color 0.15s ease;
+    color 0.15s ease,
+    filter 0.15s ease;
 }
 .qchip:hover {
-  border-color: var(--gold);
-  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  border-color: color-mix(in srgb, var(--gold-bright) 58%, #05080d);
+  filter: brightness(1.08) saturate(1.04);
+}
+.qchip:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
+  outline-offset: 3px;
 }
 .qchip--active {
-  background: var(--gold);
-  color: #2a1810;
-  border-color: var(--gold-deep);
+  background: #b8872d;
+  color: #241607;
+  border-color: #6f4911;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 247, 202, 0.28),
+    inset 0 -1px 0 rgba(54, 34, 5, 0.42),
+    0 6px 14px rgba(0, 0, 0, 0.24);
 }
 
 /* a quiet disclosure toggle for advanced / fine-print controls */
@@ -1508,13 +1582,16 @@ body.scene-locked {
      standing across the BOTTOM of the screen (fully visible, never clipped). */
   :root {
     --hero-h: clamp(116px, 26vw, 188px);
+    --chat-min-h: clamp(380px, 52vh, 560px);
   }
   .dock {
     top: var(--hero-h);
+    left: 0;
     width: 100%;
     bottom: 33vh; /* reserve the bottom band for the captain */
     padding: 0 clamp(12px, 3.5vw, 22px) clamp(8px, 1.5vh, 16px);
     gap: 0.55rem;
+    transform: none;
   }
   .hero {
     padding-top: clamp(8px, 2vh, 18px);
@@ -1527,9 +1604,6 @@ body.scene-locked {
     min-height: 0;
     margin-top: 0;
     max-height: none;
-  }
-  .dock__bottom {
-    display: none; /* the StatusCard carries the live countdown on mobile */
   }
   /* compact the bubble head so the captain's name never wraps and the card shows */
   .bubble__avatar {

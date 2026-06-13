@@ -8,7 +8,7 @@
 export type PirateState =
   | "idle" // flow is stable / nothing pending
   | "waiting" // user input is needed
-  | "thinking" // async work in flight (network, machine advance)
+  | "thinking" // signed pact is ready; waiting for the final arm action
   | "talking" // a question/card/answer is being rendered
   | "encrypting" // local encryption, storage upload, ladder mint, arm submission
   | "decrypting"; // capsule open + AES reveal
@@ -48,8 +48,8 @@ export const WAVES_CLIP = { src: "/waves.webm", poster: "/posters/waves.png" } a
  *  matching animation + chat feedback can read. Naturally slower work isn't padded. */
 export const MIN_ACTION_MS = 1600;
 
-/** Measured length (ms) of each captain clip. Used to hold a state on screen long enough
- *  for its clip to play through at least once (encrypt/decrypt are long set-pieces). */
+/** Measured length (ms) of each captain clip. Used as a no-video fallback; normal exits
+ *  are driven by PirateStage when the active video reaches a loop boundary. */
 export const CLIP_MS: Record<PirateState, number> = {
   idle: 1010,
   waiting: 2470,
@@ -59,30 +59,9 @@ export const CLIP_MS: Record<PirateState, number> = {
   decrypting: 5130,
 };
 
-/** Minimum on-screen time for a state so its clip plays the whole way through once
- *  (clip length + a small buffer past the loop point). */
+/** Fallback hold time for a state when video loop-boundary events are unavailable. */
 export function holdMs(state: PirateState): number {
-  return CLIP_MS[state] + 150;
-}
-
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-
-/** Run `work`, but don't resolve before `ms` has elapsed — a floor, never a delay
- *  added on top of slow work. Returns whatever `work` returns (and still rejects if
- *  it does, only after the floor, so the working animation never flickers away early). */
-export async function withMinDuration<T>(
-  work: () => Promise<T>,
-  ms: number = MIN_ACTION_MS,
-): Promise<T> {
-  const floor = sleep(ms);
-  try {
-    const result = await work();
-    await floor;
-    return result;
-  } catch (err) {
-    await floor;
-    throw err;
-  }
+  return Math.max(MIN_ACTION_MS, CLIP_MS[state] + 150);
 }
 
 /** The resting state to fall back to between transient actions: waiting when a card

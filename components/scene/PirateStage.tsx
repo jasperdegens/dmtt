@@ -18,6 +18,8 @@ import { usePirate } from "./PirateContext.tsx";
 import { useReducedMotion } from "./useReducedMotion.ts";
 
 const STATES = Object.keys(PIRATE_CLIPS) as PirateState[];
+const LOOP_END_EPS = 0.2;
+const LOOP_START_EPS = 0.2;
 
 export function PirateStage({
   /** Override the captain state; defaults to the shared PirateContext state. */
@@ -36,10 +38,12 @@ export function PirateStage({
   // holdMs floors, encrypt/decrypt (and every glance) get a clean full play, not whatever
   // point of the loop they happened to be at.
   const refs = useRef<Partial<Record<PirateState, HTMLVideoElement | null>>>({});
+  const lastTimes = useRef<Partial<Record<PirateState, number>>>({});
   useEffect(() => {
     if (reduced) return;
     const v = refs.current[active];
     if (!v) return;
+    lastTimes.current[active] = 0;
     try {
       v.currentTime = 0;
     } catch {
@@ -47,6 +51,22 @@ export function PirateStage({
     }
     void v.play?.().catch(() => {});
   }, [active, reduced]);
+
+  function onTimeUpdate(stateName: PirateState, v: HTMLVideoElement) {
+    if (reduced || stateName !== active) return;
+    const duration = v.duration;
+    const current = v.currentTime;
+    if (!Number.isFinite(duration) || duration <= LOOP_END_EPS + LOOP_START_EPS) {
+      lastTimes.current[stateName] = current;
+      return;
+    }
+    const previous = lastTimes.current[stateName] ?? current;
+    const wrapped = previous > current && previous - current > Math.min(0.5, duration / 2);
+    if (wrapped || (previous >= duration - LOOP_END_EPS && current <= LOOP_START_EPS)) {
+      if (!state) ctx.completeCycle(stateName);
+    }
+    lastTimes.current[stateName] = current;
+  }
 
   return (
     <div className="pirate-zone" aria-hidden="true">
@@ -67,6 +87,7 @@ export function PirateStage({
             loop
             playsInline
             preload="auto"
+            onTimeUpdate={(e) => onTimeUpdate(s, e.currentTarget)}
           />
         ))
       )}

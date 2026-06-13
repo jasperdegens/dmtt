@@ -45,7 +45,7 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
     setBusy(true);
     try {
       await runWhile(
-        "thinking",
+        "waiting",
         async () => {
           const res = await fetch("/api/cancel", {
             method: "POST",

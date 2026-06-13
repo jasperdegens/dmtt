@@ -122,9 +122,10 @@ export function CheckinCard({
       input,
       artifacts,
     };
-    // The captain ponders the postponement (at least one full thinking loop) so it reads.
+    // The captain waits through the network round-trip; thinking is reserved for
+    // the signed-but-not-yet-armed setup gap.
     await runWhile(
-      "thinking",
+      "waiting",
       async () => {
         try {
           const res = await fetch("/api/checkin", {

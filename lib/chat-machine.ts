@@ -173,6 +173,9 @@ export function narrate(ctx: ChatContext): string {
     case "WORLD":
       return "Now prove yer a livin' soul — one tap. Can't be faked nor handed off.";
     case "SIGN":
+      if (canArm(ctx)) {
+        return "Ledger mark's aboard. Last choice: arm the pact and I'll keep watch.";
+      }
       return "Last deed: sign it on yer Ledger. That key's yours alone.";
     case "ARMED":
       return "Armed! Check in afore each deadline, or the deep takes it.";

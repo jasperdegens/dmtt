@@ -20,38 +20,38 @@ import { WavesForeground } from "./scene/WavesForeground.tsx";
 import { PirateStage } from "./scene/PirateStage.tsx";
 
 export function HomeScene() {
-  // Lock page scroll while the fixed scene is mounted (panels scroll internally).
-  useEffect(() => {
-    document.body.classList.add("scene-locked");
-    return () => document.body.classList.remove("scene-locked");
-  }, []);
+	// Lock page scroll while the fixed scene is mounted (panels scroll internally).
+	useEffect(() => {
+		document.body.classList.add("scene-locked");
+		return () => document.body.classList.remove("scene-locked");
+	}, []);
 
-  return (
-    <PirateProvider>
-      <SceneBackground />
+	return (
+		<PirateProvider>
+			<SceneBackground />
 
-      {/* The hero is its own top-CENTRE banner now (not in the left dock): a very large
+			{/* The hero is its own top-CENTRE banner now (not in the left dock): a very large
           title with gold/red colour strokes that flare when the lightning strikes. */}
-      <header className="hero">
-        <p className="hero__eyebrow">Heed the Keeper of the Pact</p>
-        <h1 className="hero__title">
-          <span>Dead Men</span>
-          <em>Tell Tales</em>
-        </h1>
-      </header>
+			<header className="hero">
+				<p className="hero__eyebrow">Heed the Keeper of the Pact</p>
+				<h1 className="hero__title">
+					<span>Dead Men</span>
+					<em>Tell Tales</em>
+				</h1>
+			</header>
 
-      <div className="dock">
-        <div className="chat-shell">
-          <Chat />
-        </div>
+			<div className="dock">
+				<div className="chat-shell">
+					<Chat />
+				</div>
+			</div>
 
-        <div className="dock__bottom">
-          <AboutButton />
-        </div>
-      </div>
+			<div className="dock__bottom">
+				<AboutButton />
+			</div>
 
-      <PirateStage />
-      <WavesForeground />
-    </PirateProvider>
-  );
+			<PirateStage />
+			<WavesForeground />
+		</PirateProvider>
+	);
 }
