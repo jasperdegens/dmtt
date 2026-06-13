@@ -37,6 +37,22 @@ export interface WorldVerified {
 const APP_ID = process.env.NEXT_PUBLIC_WORLD_APP_ID ?? "";
 const ACTION = process.env.NEXT_PUBLIC_WORLD_ACTION ?? "check-in";
 
+function WorldIcon() {
+  return (
+    <svg
+      className="world-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="12" cy="12" r="8.25" />
+      <path d="M3.75 12h16.5" />
+      <path d="M12 3.75c2.35 2.2 3.55 4.95 3.55 8.25S14.35 18.05 12 20.25" />
+      <path d="M12 3.75C9.65 5.95 8.45 8.7 8.45 12s1.2 6.05 3.55 8.25" />
+    </svg>
+  );
+}
+
 export function WorldVerifyCard({
   signal,
   environment,
@@ -109,14 +125,8 @@ export function WorldVerifyCard({
   }
 
   return (
-    <div className="panel p-5">
-      <h2 className="panel-title">Prove you&apos;re human</h2>
-      <p className="panel-note mt-1 text-xs">
-        World ID binds this switch to one verified person. The nullifier can&apos;t be
-        scripted or delegated — that&apos;s the point.
-      </p>
-
-      {error ? <p className="mt-3 text-xs text-[color:var(--red)]">{error}</p> : null}
+    <div className="compose">
+      {error ? <p className="compose__err">{error}</p> : null}
 
       {configured ? (
         <>
@@ -124,9 +134,10 @@ export function WorldVerifyCard({
             type="button"
             disabled={busy}
             onClick={startVerify}
-            className="btn btn--gold mt-4 w-full"
+            className="btn btn--gold w-full"
           >
-            {busy ? "Verifying…" : "Verify with World ID"}
+            <WorldIcon />
+            <span>{busy ? "Verifying..." : "Prove I’m a living soul"}</span>
           </button>
 
           {rpContext ? (
@@ -145,7 +156,7 @@ export function WorldVerifyCard({
           ) : null}
         </>
       ) : (
-        <button type="button" onClick={simulate} className="btn btn--ghost mt-4 w-full">
+        <button type="button" onClick={simulate} className="btn btn--ghost w-full">
           Simulate World ID (dev — not configured)
         </button>
       )}

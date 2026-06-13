@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-/* Pirate display/body fonts (Pirata One, IM Fell English[ SC]) are loaded via <link>
+/* Pirate display/body fonts (Pirata One, IM Fell English[ SC]) plus the readable UI
+   face (Alegreya Sans) are loaded via <link>
    in app/layout.tsx — keeping them out of CSS @import avoids the Tailwind-v4 ordering
    warning and the render-blocking import. Fallbacks (serif) keep the layout intact if
    the web fonts are slow or offline. */
@@ -18,8 +19,10 @@
   --gold: #e0a83a;
   --gold-bright: #f4d06a;
   --gold-deep: #b07d1e;
+  --gold-extra-deep: #5d410e;
   --red: #c8423a;
   --red-deep: #9a2f25;
+  --red-extra-deep: #591913;
   --cream: #e8dcc0;
   --cream-bright: #f3e8cc;
   --navy: #14202b;
@@ -37,13 +40,24 @@
   --font-display: "Pirata One", "Cinzel Decorative", system-ui, serif;
   --font-body: "IM Fell English", Georgia, "Times New Roman", serif;
   --font-caps: "IM Fell English SC", var(--font-body);
+  --font-ui: "Alegreya Sans", system-ui, sans-serif;
 
   /* surfaces */
-  --panel-border: color-mix(in srgb, var(--gold) 42%, transparent);
-  --panel-bg: linear-gradient(180deg, #1a2c3e 0%, #122130 60%, #0d1a27 100%);
+  --panel-border: color-mix(in srgb, var(--gold) 50%, transparent);
+  /* Flat ship-cabin surfaces — definition comes from gold/red strokes, not gradients. */
+  --panel-bg: #15263a;
+  --surface: #102234;
+  --surface-deep: #0d1a27;
 
   --background: var(--ink);
   --foreground: var(--cream);
+
+  /* The hero sits ~a fifth of the way down the page. --hero-top pushes the title down to
+     there; --hero-h is the band below which the chat dock starts (clearing the lowered
+     title). The captain is width-driven (16:9 clips) so he stays anchored at the bottom. */
+  --hero-top: clamp(48px, 10vh, 140px);
+  --hero-h: clamp(300px, calc(var(--hero-top) + 21.5vw + 28px), 660px);
+  --chat-min-h: clamp(520px, 62vh, 700px);
 }
 
 * {
@@ -112,12 +126,9 @@ body.scene-locked {
 .panel {
   position: relative;
   background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
+  border: 1.5px solid var(--panel-border);
   border-radius: 10px;
-  box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.5),
-    inset 0 0 0 1px rgba(12, 25, 37, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
   color: var(--cream);
 }
 .panel--danger {
@@ -153,81 +164,117 @@ body.scene-locked {
   align-items: center;
   justify-content: center;
   gap: 0.5em;
-  font-family: var(--font-caps);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.82rem;
-  line-height: 1;
-  padding: 0.62rem 1.05rem;
-  border-radius: 7px;
-  border: 2px solid #2a1c0c;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 1rem;
+  line-height: 1.15;
+  min-height: 44px;
+  padding: 0.7rem 1.1rem;
+  border: 0;
+  border-radius: 5px;
+  background: #123a58;
+  color: #fff4d7;
+  box-shadow: none;
   cursor: pointer;
   transition:
-    transform 0.1s ease,
-    filter 0.18s ease,
-    background 0.18s ease;
+    background 0.15s ease,
+    color 0.15s ease,
+    filter 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
+.btn:hover:not(:disabled) {
+  background: #174767;
+}
+.btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
+  outline-offset: 3px;
+}
 .btn:active {
-  transform: translateY(1px);
+  filter: brightness(0.92);
 }
 .btn:disabled {
   opacity: 0.5;
   cursor: default;
-  transform: none;
 }
 .btn--gold {
-  color: #2a1810;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--gold) 92%, #fff),
-    var(--gold) 48%,
-    var(--gold-deep)
-  );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  color: #160d04;
+  background: #d69722;
+  text-shadow: none;
 }
 .btn--gold:hover:not(:disabled) {
-  filter: brightness(1.07);
+  background: #e2a62d;
 }
 .btn--ghost {
-  color: var(--cream);
-  background: color-mix(in srgb, #000 42%, transparent);
-  border-color: color-mix(in srgb, var(--gold) 45%, transparent);
+  color: #fff4d7;
+  background: #123a58;
 }
 .btn--ghost:hover:not(:disabled) {
-  background: color-mix(in srgb, #000 22%, transparent);
-  border-color: var(--gold);
+  background: #174767;
 }
 .btn--danger {
-  color: #fdece2;
-  background: linear-gradient(180deg, var(--red), var(--red-deep));
-  border-color: #5e1b14;
+  color: #fff1e8;
+  background: #b6382e;
+  text-shadow: none;
 }
 .btn--danger:hover:not(:disabled) {
-  filter: brightness(1.08);
+  background: #c84338;
+}
+/* a larger primary button (the live "Check in") */
+.btn--lg {
+  font-size: 1.08rem;
+  letter-spacing: 0;
+  min-height: 54px;
+  padding: 0.95rem 1.25rem;
+  border-radius: 7px;
+}
+/* a secondary, outline-danger button (the live "Terminate") — destructive but quiet */
+.btn--danger-ghost {
+  color: #ffd1ca;
+  background: #3b1d22;
+}
+.btn--danger-ghost:hover:not(:disabled) {
+  background: #4b2328;
+  color: #fdece2;
+}
+.btn--danger-ghost.is-on {
+  background: #b6382e;
+  color: #fdece2;
+}
+
+.world-icon {
+  flex: 0 0 auto;
+  width: 1.15em;
+  height: 1.15em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* segmented tab buttons (memo note/file, interval units) */
 .tab {
-  font-family: var(--font-caps);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 0.74rem;
-  padding: 0.42rem 0.85rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
-  background: color-mix(in srgb, #000 30%, transparent);
-  color: color-mix(in srgb, var(--cream) 78%, transparent);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.95rem;
+  padding: 0.48rem 0.9rem;
+  border: 0;
+  border-radius: 5px;
+  background: #123a58;
+  color: #fff4d7;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 .tab:hover {
-  background: color-mix(in srgb, var(--gold) 14%, transparent);
+  background: #174767;
 }
 .tab--active {
-  background: linear-gradient(180deg, var(--gold), var(--gold-deep));
-  color: #2a1810;
-  border-color: #2a1c0c;
+  background: #d69722;
+  color: #160d04;
 }
 
 /* ============================== FIELDS ============================== */
@@ -359,22 +406,27 @@ body.scene-locked {
 /* the galleon — a transparent sprite riding the horizon, darkened (the lightning
    overlay illuminates it; we don't animate the ship's own filter so its grading +
    drop-shadow survive). */
+/* The galleon LOOMS: very large, centred, anchored low so its hull sits at the
+   waterline — the front wave layer (z30) rides over the hull so the ship reads as
+   sitting IN the water, between the two wave layers (back wave z1 → ship z2 → front
+   wave z30). Darkened so the lightning reveal is dramatic. */
 .ship {
   position: absolute;
   left: 50%;
-  top: 38%;
-  width: min(58vw, 760px);
+  bottom: 12vh;
+  width: min(124vw, 1700px);
+  max-width: none; /* Tailwind preflight caps replaced elements at 100% — override it */
   z-index: 2;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   object-fit: contain;
-  filter: brightness(0.44) saturate(0.85) contrast(1.05)
-    drop-shadow(0 20px 30px rgba(0, 0, 0, 0.6));
+  filter: brightness(0.5) saturate(0.82) contrast(1.06)
+    drop-shadow(0 26px 44px rgba(0, 0, 0, 0.65));
   animation: shipBob 9s ease-in-out infinite;
   pointer-events: none;
 }
 @keyframes shipBob {
   50% {
-    transform: translate(-50%, calc(-50% - 8px)) rotate(0.4deg);
+    transform: translateX(-50%) translateY(-9px) rotate(0.3deg);
   }
 }
 
@@ -404,7 +456,7 @@ body.scene-locked {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 30vh;
+  height: 40vh;
   z-index: 31;
   background: linear-gradient(
     0deg,
@@ -437,6 +489,69 @@ body.scene-locked {
   }
 }
 
+/* jagged lightning bolts struck across the sky, flashing on the same beats as the glow.
+   They sit behind the galleon (z2) so the ship occludes any overlap. */
+.bolts {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  overflow: visible;
+}
+.bolt {
+  fill: none;
+  stroke: #f1f6ff;
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0;
+  filter: drop-shadow(0 0 5px #cfe0ff) drop-shadow(0 0 16px #7ba6ec)
+    drop-shadow(0 0 34px #4f7fd0);
+}
+.bolt--1 {
+  animation: boltA 13s linear infinite;
+}
+.bolt--2 {
+  animation: boltB 13s linear infinite;
+}
+.bolt--3 {
+  animation: boltA 13s linear infinite;
+  animation-delay: 0.18s;
+  opacity: 0;
+}
+/* flash with the first strike (~1.2%) */
+@keyframes boltA {
+  0%,
+  0.9%,
+  2.4%,
+  100% {
+    opacity: 0;
+  }
+  1.2% {
+    opacity: 1;
+  }
+  1.8% {
+    opacity: 0.18;
+  }
+}
+/* flash with the second strike (~3.6%) */
+@keyframes boltB {
+  0%,
+  3.2%,
+  4.8%,
+  100% {
+    opacity: 0;
+  }
+  3.6% {
+    opacity: 0.92;
+  }
+  4.2% {
+    opacity: 0.12;
+  }
+}
+
 .vignette {
   position: absolute;
   inset: 0;
@@ -456,17 +571,22 @@ body.scene-locked {
    foreground UI stays readable. */
 .wave {
   position: fixed;
-  left: -6%;
-  right: -6%;
-  width: 112%;
+  left: -25%;
+  right: auto;
+  width: 150%;
+  max-width: none; /* Tailwind preflight caps replaced elements at 100% — override it */
   bottom: 0;
   pointer-events: none;
   object-fit: cover;
   object-position: center bottom;
+  /* The sea spills well past both edges (150% wide) so no video edge is ever in view, and
+     the top dissolves into a soft fade — the cropped crest line is never a hard clip. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 28%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 28%);
 }
 .wave--back {
   z-index: 1;
-  height: 30vh;
+  height: 44vh;
   opacity: 0.9;
   filter: brightness(0.62) saturate(0.85) hue-rotate(-6deg);
   animation: waveSwayBack 13s ease-in-out infinite;
@@ -475,7 +595,7 @@ body.scene-locked {
    even sharing one source clip it never reads as the same water as the back layer. */
 .wave--front {
   z-index: 30;
-  height: 26vh;
+  height: 40vh;
   opacity: 0.98;
   filter: brightness(0.52) saturate(0.9) contrast(1.05);
   animation: waveSwayFront 11s ease-in-out infinite;
@@ -500,49 +620,57 @@ body.scene-locked {
 }
 
 /* ============================== THE CAPTAIN ============================== */
+/* The captain sits to the RIGHT of the chat. z35 keeps him above the foreground wave
+   (z30) and everything in the scene, but below the chat dock (z40) — "over everything
+   except the chat box". Smaller on big screens (capped by the clamp). */
 .pirate-zone {
   position: fixed;
-  right: 0;
+  top: var(--hero-h);
+  right: clamp(0px, 1.5vw, 40px);
   bottom: 0;
-  z-index: 35; /* above the foreground wave (z30) so the captain + chest stay clear */
-  width: clamp(280px, 38vw, 540px);
-  height: clamp(360px, 82vh, 900px);
+  z-index: 35;
+  /* Much bigger on medium + large screens (the 16:9 clip is width-driven, so a wider zone
+     = a larger captain), capped by the clamp's max so he never overruns. Anchored
+     bottom-right; the transparent left of the frame can overlap the chat harmlessly. */
+  width: clamp(360px, 54vw, 1040px);
   pointer-events: none;
 }
+/* EVERY clip is mounted at once (PirateStage), preloaded and looping, so a state change
+   switches INSTANTLY with a small crossfade — the active clip fades in while the outgoing
+   one fades out, then the inactive ones flip to visibility:hidden (so they neither leak an
+   alpha-matte ghost nor cost paint). object-fit:contain keeps the whole figure, never
+   clipped. */
 .pirate-media {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center bottom;
+  object-fit: contain;
+  object-position: right bottom;
   filter: drop-shadow(0 16px 26px rgba(0, 0, 0, 0.55));
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.1s ease,
+    visibility 0s linear 0.1s;
   animation: pirateBob 5.5s ease-in-out infinite;
+}
+.pirate-media.is-active {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.1s ease,
+    visibility 0s;
 }
 @keyframes pirateBob {
   50% {
     transform: translateY(-1%) rotate(-0.3deg);
   }
 }
-/* clip-swap fade so a state change never reads as a blank flash (poster covers the gap) */
-.pirate-media--fade {
-  animation:
-    pirateBob 5.5s ease-in-out infinite,
-    pirateFadeIn 0.45s ease-out;
-}
-@keyframes pirateFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 .pirate-tag {
   position: absolute;
-  left: 50%;
+  right: clamp(16px, 5vw, 70px);
   bottom: clamp(8px, 2vh, 22px);
-  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 0.5em;
@@ -568,97 +696,137 @@ body.scene-locked {
   animation: pulse 1.8s ease-in-out infinite;
 }
 
-/* ============================== THE LEFT DOCK ============================== */
-/* A fixed left column that stacks the hero, the chat bubble (which flexes to fill),
-   and the countdown watch — one flow, no absolute-position collisions. Sits above
-   the foreground wave so its text/controls are never covered. The captain occupies
-   the right; the scene shows in the gap between. */
+/* ============================== THE CHAT DOCK ============================== */
+/* A fixed chat group balanced against the captain. On desktop it starts nearer the
+   centre of the page and is vertically centred; mobile resets to the portrait stack. */
 .dock {
   position: fixed;
-  inset: 0 auto 0 0;
+  top: 50%;
+  left: clamp(64px, 8vw, 180px);
+  bottom: auto;
   z-index: 40;
-  width: min(520px, 50vw);
-  height: 100%;
+  width: min(470px, 42vw);
   display: flex;
   flex-direction: column;
-  gap: clamp(0.7rem, 1.4vh, 1.1rem);
-  padding: clamp(16px, 3vh, 38px) clamp(16px, 2vw, 34px);
+  gap: clamp(0.6rem, 1.4vh, 1rem);
+  padding: 0;
+  transform: translateY(-50%);
   pointer-events: none;
 }
 .dock > * {
   pointer-events: auto;
 }
-.dock__top {
-  flex: 0 0 auto;
-}
 .chat-shell {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: var(--chat-min-h);
   display: flex;
+  pointer-events: none;
 }
 .chat-shell > .bubble {
   flex: 1 1 auto;
+  min-height: var(--chat-min-h);
+  pointer-events: auto;
+}
+.chat-shell:has(.bubble--collapsed),
+.chat-shell > .bubble.bubble--collapsed {
   min-height: 0;
 }
 .dock__bottom {
-  flex: 0 0 auto;
+  position: fixed;
+  left: clamp(16px, 2vw, 32px);
+  bottom: clamp(16px, 2.5vh, 30px);
+  z-index: 42;
   display: flex;
   align-items: center;
   gap: 0.8rem;
   flex-wrap: wrap;
+  pointer-events: auto;
 }
 
 /* ============================== HERO ============================== */
+/* The hero is a big, top-CENTRE banner pinned across the whole width, above the scene
+   but below the chat dock. It owns the top --hero-h band of the viewport. */
 .hero {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 38;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--hero-top) 16px 0;
   pointer-events: none;
 }
 .hero__eyebrow {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.7em;
   font-family: var(--font-caps);
   text-transform: uppercase;
-  letter-spacing: 0.3em;
-  font-size: clamp(9px, 0.9vw, 12px);
-  color: var(--gold);
-  margin: 0 0 0.5rem;
+  letter-spacing: 0.34em;
+  font-size: clamp(9px, 0.9vw, 13px);
+  color: var(--gold-deep);
+  margin: 0 0 0.45rem;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
 }
+.hero__eyebrow::before,
 .hero__eyebrow::after {
   content: "";
-  flex: 1;
+  width: clamp(18px, 5vw, 84px);
   height: 1px;
-  background: linear-gradient(90deg, var(--gold), transparent);
+  background: var(--gold);
+  opacity: 0.7;
 }
+/* BLACK letters with core-colour strokes — gold on the first line, red on the second.
+   The fill stays black; only the STROKE lights up, in lockstep with the storm: heroFlash
+   shares the EXACT keyframe timing of @keyframes lightning and brightens the element (the
+   black fill stays black, the gold/red stroke flares and glows) the instant lightning
+   strikes the scene. */
 .hero__title {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(38px, 5vw, 76px);
-  line-height: 0.84;
+  font-size: clamp(64px, 13vw, 240px);
+  line-height: 0.8;
+  letter-spacing: 0.01em;
   margin: 0;
-  color: var(--cream);
-  text-shadow:
-    0 3px 0 rgba(0, 0, 0, 0.5),
-    0 0 60px rgba(0, 0, 0, 0.6);
 }
-.hero__title span {
-  display: block;
-  white-space: nowrap;
-}
+.hero__title span,
 .hero__title em {
   display: block;
   font-style: normal;
-  color: var(--gold);
-  text-shadow:
-    0 3px 0 rgba(0, 0, 0, 0.55),
-    0 0 40px color-mix(in srgb, var(--gold) 55%, transparent);
+  white-space: nowrap;
+  color: #07070a;
+  /* a thin, DARK base stroke (deep gold / deep red) on the huge black letters; it flares
+     bright only when lightning strikes (heroFlash brightens the whole element — the black
+     fill stays black, the stroke lights up + glows). */
+  -webkit-text-stroke: clamp(1.4px, 0.26vw, 4px) var(--gold-extra-deep);
+  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.55);
+  animation: heroFlash 13s linear infinite;
 }
-.hero__sub {
-  margin: 0.8rem 0 0;
-  max-width: 38ch;
-  font-size: clamp(12px, 1vw, 15px);
-  font-style: italic;
-  color: color-mix(in srgb, var(--cream) 82%, #fff);
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+.hero__title em {
+  -webkit-text-stroke-color: var(--red-extra-deep);
+}
+@keyframes heroFlash {
+  0%,
+  6%,
+  100% {
+    filter: brightness(1);
+  }
+  1.2% {
+    filter: brightness(2.9) drop-shadow(0 0 20px rgba(255, 255, 255, 0.95))
+      drop-shadow(0 0 46px var(--gold-bright));
+  }
+  2.4% {
+    filter: brightness(1);
+  }
+  3.6% {
+    filter: brightness(2.1) drop-shadow(0 0 14px rgba(255, 255, 255, 0.85));
+  }
+  4.6% {
+    filter: brightness(1);
+  }
 }
 
 /* ============================== THE COUNTDOWN WATCH ============================== */
@@ -714,18 +882,222 @@ body.scene-locked {
   }
 }
 
+/* ============================== ABOUT BUTTON + README MODAL ============================== */
+.about-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 1rem;
+  border: 0;
+  border-radius: 5px;
+  background: rgba(18, 58, 88, 0.94);
+  backdrop-filter: blur(3px);
+  box-shadow: none;
+  color: #fff4d7;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    filter 0.15s ease;
+}
+.about-btn:hover {
+  background: rgba(23, 71, 103, 0.96);
+}
+.about-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
+  outline-offset: 3px;
+}
+.about-btn__icon {
+  font-size: 1.25rem;
+  color: var(--gold-bright);
+}
+.about-btn__title {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0;
+  color: #fff4d7;
+}
+
+.about-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(12px, 4vh, 48px);
+  background: rgba(4, 8, 14, 0.74);
+  backdrop-filter: blur(4px);
+}
+.about-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(820px, 100%);
+  max-height: 100%;
+  background: var(--surface);
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+.about-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem;
+  flex: 0 0 auto;
+  border-bottom: 2px solid var(--gold);
+  background: var(--red-deep);
+}
+.about-modal__heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.4rem;
+  color: var(--gold-bright);
+}
+.about-modal__close {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 5px;
+  background: #123a58;
+  color: #fff4d7;
+  box-shadow: none;
+  cursor: pointer;
+}
+.about-modal__close:hover {
+  background: #174767;
+}
+.about-modal__close:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
+  outline-offset: 3px;
+}
+.about-modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.2rem 1.4rem 1.6rem;
+  background: var(--surface-deep);
+}
+
+/* ----- rendered markdown ----- */
+.markdown {
+  color: color-mix(in srgb, var(--cream) 92%, #fff);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+.markdown > :first-child {
+  margin-top: 0;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--gold-bright);
+  line-height: 1.15;
+  margin: 1.5rem 0 0.6rem;
+}
+.markdown h1 {
+  font-size: 1.7rem;
+}
+.markdown h2 {
+  font-size: 1.35rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--gold) 28%, transparent);
+  padding-bottom: 0.3rem;
+}
+.markdown h3 {
+  font-size: 1.12rem;
+  color: var(--gold);
+}
+.markdown p {
+  margin: 0.7rem 0;
+}
+.markdown a {
+  color: var(--gold-bright);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.markdown a:hover {
+  color: #fff;
+}
+.markdown strong {
+  color: var(--cream-bright);
+}
+.markdown ul,
+.markdown ol {
+  margin: 0.7rem 0;
+  padding-left: 1.4rem;
+}
+.markdown li {
+  margin: 0.3rem 0;
+}
+.markdown code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.85em;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid color-mix(in srgb, var(--gold) 18%, transparent);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  color: var(--gold-bright);
+}
+.markdown pre {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid color-mix(in srgb, var(--gold) 18%, transparent);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  overflow-x: auto;
+}
+.markdown pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: color-mix(in srgb, var(--cream) 92%, #fff);
+}
+.markdown blockquote {
+  margin: 0.8rem 0;
+  padding: 0.2rem 0 0.2rem 1rem;
+  border-left: 3px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  color: color-mix(in srgb, var(--cream) 78%, transparent);
+}
+.markdown hr {
+  border: none;
+  border-top: 1px solid color-mix(in srgb, var(--gold) 25%, transparent);
+  margin: 1.4rem 0;
+}
+.markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.9rem 0;
+  font-size: 0.84rem;
+}
+.markdown th,
+.markdown td {
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, transparent);
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+.markdown th {
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--gold-bright);
+  font-family: var(--font-caps);
+  font-weight: 400;
+}
+
 /* ============================== THE CHAT BUBBLE ============================== */
 .bubble {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   color: var(--cream);
-  background: linear-gradient(180deg, #1d3346 0%, #142536 55%, #0e1d2b 100%);
+  background: var(--surface);
   border: 2px solid var(--gold);
   border-radius: 11px;
-  box-shadow:
-    0 24px 56px rgba(0, 0, 0, 0.7),
-    inset 0 0 0 2px #0c1925;
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.7);
 }
 .bubble__head {
   display: flex;
@@ -734,9 +1106,37 @@ body.scene-locked {
   padding: 0.7rem 0.9rem;
   flex: 0 0 auto;
   border-bottom: 2px solid var(--gold);
-  background:
-    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.07) 0 6px, transparent 6px 12px),
-    linear-gradient(180deg, var(--red), var(--red-deep));
+  background: var(--red-deep);
+  cursor: grab; /* drag to move · click to collapse · double-click to reset */
+  user-select: none;
+  touch-action: none;
+}
+.bubble__head:active {
+  cursor: grabbing;
+}
+.bubble__head:hover {
+  background: color-mix(in srgb, var(--red-deep) 86%, #fff);
+}
+/* the collapse chevron, far right of the header */
+.bubble__chevron {
+  flex: 0 0 auto;
+  margin-left: 0.2rem;
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--gold-bright);
+  transition: transform 0.2s ease;
+}
+.bubble__chevron--collapsed {
+  transform: rotate(-90deg);
+}
+/* collapsed: the bubble shrinks to just its header (top of the dock column) */
+.bubble--collapsed {
+  flex: 0 0 auto !important;
+  align-self: flex-start;
+  width: 100%;
+}
+.bubble--collapsed .bubble__head {
+  border-bottom: none;
 }
 .bubble__avatar {
   width: 42px;
@@ -754,7 +1154,7 @@ body.scene-locked {
 }
 .bubble__name {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   line-height: 1.1;
   color: var(--gold-bright);
   text-shadow: 0 1px 0 #6e1f17;
@@ -782,7 +1182,7 @@ body.scene-locked {
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
-  background: linear-gradient(180deg, #16283a 0%, #0e1d2b 100%);
+  background: var(--surface-deep);
 }
 /* the active step / live cards live at the bottom of the scroll, after the messages */
 .bubble__cards {
@@ -790,21 +1190,23 @@ body.scene-locked {
   flex-direction: column;
   gap: 0.75rem;
 }
-.bubble__form {
+
+/* the ACTIVE switch's bottom action bar — pinned under the log, never scrolls away.
+   "Check in" flexes to fill (the large primary); "Terminate" stays compact beside it. */
+.bubble__actions {
   flex: 0 0 auto;
+  display: flex;
+  gap: 0.6rem;
   padding: 0.7rem 0.8rem;
   border-top: 2px solid var(--gold);
-  background: linear-gradient(180deg, #18293b, #112030);
+  background: var(--surface);
 }
-.bubble__form-row {
-  display: flex;
-  gap: 0.5rem;
+.bubble__actions-primary {
+  flex: 1 1 auto;
 }
-.bubble__foot {
-  margin: 0 0 0.5rem;
-  font-size: 0.72rem;
-  color: var(--gold-bright);
-  font-style: italic;
+.bubble__actions-primary.is-on {
+  background: #e2a62d;
+  box-shadow: none;
 }
 
 /* compact step ladder, shown in the bubble head */
@@ -849,19 +1251,33 @@ body.scene-locked {
 }
 .msg--cap {
   align-self: flex-start;
-  background: linear-gradient(180deg, var(--cream-bright), #e6d7b0);
-  border: 1px solid #b8a888;
+  background: var(--cream-bright);
+  border: 1.5px solid #b8a888;
   border-bottom-left-radius: 3px;
   color: #1c2a38;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
 }
 .msg--me {
   align-self: flex-end;
-  background: linear-gradient(180deg, var(--red), var(--red-deep));
+  background: var(--red);
   color: #fdf4e2;
-  border: 1px solid #6e1f17;
+  border: 1.5px solid #6e1f17;
   border-bottom-right-radius: 3px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+}
+/* streaming caret — blinks while the captain "writes" a line (typewriter reveal) */
+.msg__caret {
+  display: inline-block;
+  width: 0.5ch;
+  margin-left: 1px;
+  font-weight: 700;
+  color: var(--red-deep);
+  animation: caretBlink 0.9s steps(1, end) infinite;
+}
+@keyframes caretBlink {
+  50% {
+    opacity: 0;
+  }
 }
 .msg--note {
   align-self: center;
@@ -901,6 +1317,202 @@ body.scene-locked {
   }
 }
 
+/* ============================== CHAT-NATIVE ACTION CARDS ============================== */
+/* Each step renders as a clean "your turn" composer at the foot of the chat — no heavy
+   panel title or explanatory prose (the captain says all that, with a wink, in his
+   dialogue). Just the controls. Used by every step + live card so the whole flow reads
+   like one conversation. Security reassurances stay (a tiny caps tag), never restyled away. */
+.compose {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1.5px solid color-mix(in srgb, var(--gold) 30%, transparent);
+  border-radius: 13px;
+  background: color-mix(in srgb, #000 24%, transparent);
+}
+.compose--danger {
+  border-color: color-mix(in srgb, var(--red) 50%, transparent);
+}
+.compose--ok {
+  border-color: color-mix(in srgb, #5bd06a 45%, transparent);
+}
+.compose--released {
+  border-color: color-mix(in srgb, var(--gold) 60%, transparent);
+}
+.compose__tag {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--font-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.64rem;
+  color: var(--gold-bright);
+}
+.compose__lead {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--cream) 84%, transparent);
+}
+.compose__note {
+  margin: 0;
+  font-size: 0.7rem;
+  font-style: italic;
+  color: color-mix(in srgb, var(--cream) 55%, transparent);
+}
+.compose__err {
+  margin: 0;
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--red) 92%, #fff);
+}
+.compose__ok {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #8fe6a6;
+}
+.compose__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* tappable quick-reply controls — bright enough to read over the dark cabin panels */
+.qchip {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.96rem;
+  line-height: 1.15;
+  padding: 0.62rem 1rem;
+  border: 0;
+  border-radius: 5px;
+  background: #123a58;
+  color: #fff4d7;
+  box-shadow: none;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    filter 0.15s ease;
+}
+.qchip:hover {
+  background: #174767;
+}
+.qchip:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
+  outline-offset: 3px;
+}
+.qchip--active {
+  background: #d69722;
+  color: #160d04;
+  box-shadow: none;
+}
+
+/* a quiet disclosure toggle for advanced / fine-print controls */
+.disclosure {
+  align-self: flex-start;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.9rem;
+  color: var(--gold-bright);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.1rem 0;
+}
+.disclosure:hover {
+  color: #fff;
+}
+
+/* compact labelled fields for the fine-print grid */
+.compose__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 0.7rem;
+}
+.compose__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.compose__field--wide {
+  grid-column: 1 / -1;
+}
+.compose__field > span {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.82rem;
+  color: color-mix(in srgb, var(--cream) 76%, transparent);
+}
+
+/* live status strip */
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--cream);
+}
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+.status-grid > div {
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, transparent);
+  border-radius: 9px;
+  padding: 0.5rem 0.6rem;
+}
+.status-grid span {
+  display: block;
+  font-family: var(--font-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.55rem;
+  color: color-mix(in srgb, var(--cream) 55%, transparent);
+}
+.status-grid b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.15rem;
+  color: var(--cream);
+}
+
+/* a minimal collapsible (audit trail / ledger memo) */
+.peek > summary {
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.6rem;
+  color: var(--gold-bright);
+}
+.peek > summary::-webkit-details-marker {
+  display: none;
+}
+.peek[open] > summary {
+  margin-bottom: 0.4rem;
+}
+.peek__body {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.72rem;
+  color: color-mix(in srgb, var(--cream) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 20%, transparent);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  word-break: break-all;
+  background: rgba(0, 0, 0, 0.25);
+}
+
 /* ============================== STATUS / REVEAL PAGE (/s/[topicId]) ============================== */
 /* A scrollable left column of parchment cards over the same fixed scene; the captain
    stays at lower-right and reacts to the reveal. */
@@ -934,33 +1546,39 @@ body.scene-locked {
 @media (max-width: 900px) {
   .switch-page {
     width: 100%;
-    /* leave the top clear for the captain peeking from the upper-right */
-    padding-top: min(40vh, 320px);
+    /* leave the bottom clear for the captain standing at the foot of the screen */
+    padding-bottom: min(36vh, 320px);
   }
 }
 
 /* ============================== RESPONSIVE (portrait / narrow) ============================== */
 @media (max-width: 900px) {
-  /* dock becomes a full-width column; the chat is a bottom sheet so the captain +
-     hero have the top half to breathe. */
+  /* Portrait stack: the hero banner up top, the chat in the middle, and the captain
+     standing across the BOTTOM of the screen (fully visible, never clipped). */
+  :root {
+    --hero-h: clamp(116px, 26vw, 188px);
+    --chat-min-h: clamp(380px, 52vh, 560px);
+  }
   .dock {
+    top: var(--hero-h);
+    left: 0;
     width: 100%;
-    padding: clamp(12px, 2.4vh, 22px) clamp(12px, 3.5vw, 22px);
-    gap: 0.6rem;
+    bottom: 33vh; /* reserve the bottom band for the captain */
+    padding: 0 clamp(12px, 3.5vw, 22px) clamp(8px, 1.5vh, 16px);
+    gap: 0.55rem;
+    transform: none;
+  }
+  .hero {
+    padding-top: clamp(8px, 2vh, 18px);
   }
   .hero__title {
-    font-size: clamp(34px, 11vw, 60px);
-  }
-  .hero__sub {
-    display: none; /* keep the top tight on small screens */
+    font-size: clamp(34px, 12vw, 64px);
   }
   .chat-shell {
-    flex: 0 1 auto;
-    margin-top: auto; /* push the bubble to the bottom */
-    max-height: min(66vh, 600px);
-  }
-  .dock__bottom {
-    display: none; /* the StatusCard carries the live countdown on mobile */
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: 0;
+    max-height: none;
   }
   /* compact the bubble head so the captain's name never wraps and the card shows */
   .bubble__avatar {
@@ -977,40 +1595,55 @@ body.scene-locked {
     display: none;
   }
 
-  /* captain peeks from the upper-right, full-figure (contain) so nothing is cropped */
+  /* the captain stands at the foot of the screen, full width, fully visible */
   .pirate-zone {
-    top: clamp(56px, 12vh, 120px);
-    right: clamp(-6px, -1vw, 0px);
-    bottom: auto;
-    width: min(62vw, 320px);
-    height: min(38vh, 340px);
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 33vh;
     z-index: 35;
   }
   .pirate-media {
-    object-fit: contain;
-    object-position: center top;
+    object-position: center bottom;
   }
   .pirate-tag {
-    bottom: auto;
-    top: 4px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    top: auto;
+    bottom: 6px;
   }
 
   .wave--back {
-    height: 24vh;
+    height: 22vh;
   }
   .wave--front,
   .lightning--front {
-    height: 20vh;
+    height: 19vh;
   }
 }
 
 @media (max-width: 560px) {
   .hero__title {
-    font-size: clamp(30px, 12vw, 52px);
+    font-size: clamp(30px, 13vw, 54px);
+  }
+  .dock {
+    bottom: 30vh;
   }
   .pirate-zone {
-    width: min(56vw, 240px);
-    height: min(32vh, 260px);
+    height: 30vh;
+  }
+}
+
+/* ============================== MEDIUM SCREENS (tablet / small laptop) ============================== */
+/* The galleon looms larger on medium screens; the captain already scales up via his
+   width clamp (44vw). */
+@media (min-width: 901px) and (max-width: 1280px) {
+  .ship {
+    width: min(160vw, 1520px);
+    bottom: 8vh;
   }
 }
 
@@ -1023,13 +1656,21 @@ body.scene-locked {
   .wave--back,
   .wave--front,
   .pirate-media,
-  .pirate-media--fade,
+  .hero__title span,
+  .hero__title em,
   .watch__dot,
   .pirate-tag__dot,
+  .msg__caret,
   .typing span {
     animation: none !important;
   }
   .ship {
     filter: brightness(0.5) saturate(0.85) drop-shadow(0 20px 30px rgba(0, 0, 0, 0.6));
+  }
+  /* with no lightning to light the strokes, keep them statically bright (black fill,
+     brightened gold/red stroke) so the title still reads */
+  .hero__title span,
+  .hero__title em {
+    filter: brightness(1.45);
   }
 }

@@ -13,47 +13,45 @@
 import { useEffect } from "react";
 
 import { Chat } from "./Chat.tsx";
+import { AboutButton } from "./AboutButton.tsx";
 import { PirateProvider } from "./scene/PirateContext.tsx";
 import { SceneBackground } from "./scene/SceneBackground.tsx";
 import { WavesForeground } from "./scene/WavesForeground.tsx";
 import { PirateStage } from "./scene/PirateStage.tsx";
-import { Watch } from "./scene/Watch.tsx";
 
 export function HomeScene() {
-  // Lock page scroll while the fixed scene is mounted (panels scroll internally).
-  useEffect(() => {
-    document.body.classList.add("scene-locked");
-    return () => document.body.classList.remove("scene-locked");
-  }, []);
+	// Lock page scroll while the fixed scene is mounted (panels scroll internally).
+	useEffect(() => {
+		document.body.classList.add("scene-locked");
+		return () => document.body.classList.remove("scene-locked");
+	}, []);
 
-  return (
-    <PirateProvider>
-      <SceneBackground />
+	return (
+		<PirateProvider>
+			<SceneBackground />
 
-      <div className="dock">
-        <header className="dock__top hero">
-          <p className="hero__eyebrow">Heed the Keeper of the Pact</p>
-          <h1 className="hero__title">
-            <span>Dead Men</span>
-            <em>Tell Tales</em>
-          </h1>
-          <p className="hero__sub">
-            Leave your final words with the old sea dog — encrypted in your browser,
-            delivered only if you fall silent upon the tides.
-          </p>
-        </header>
+			{/* The hero is its own top-CENTRE banner now (not in the left dock): a very large
+          title with gold/red colour strokes that flare when the lightning strikes. */}
+			<header className="hero">
+				<p className="hero__eyebrow">Human-Verified Protection</p>
+				<h1 className="hero__title">
+					<span>Dead Men</span>
+					<em>Tell Tales</em>
+				</h1>
+			</header>
 
-        <div className="chat-shell">
-          <Chat />
-        </div>
+			<div className="dock">
+				<div className="chat-shell">
+					<Chat />
+				</div>
+			</div>
 
-        <div className="dock__bottom">
-          <Watch />
-        </div>
-      </div>
+			<div className="dock__bottom">
+				<AboutButton />
+			</div>
 
-      <PirateStage />
-      <WavesForeground />
-    </PirateProvider>
-  );
+			<PirateStage />
+			<WavesForeground />
+		</PirateProvider>
+	);
 }

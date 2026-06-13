@@ -53,9 +53,9 @@ export function SwitchScene({
         {initialView ? (
           <RevealCard view={initialView} />
         ) : (
-          <div className="panel p-5">
-            <h2 className="panel-title">The memo</h2>
-            <p className="panel-note mt-2 text-sm">
+          <div className="compose">
+            <p className="compose__tag">⚱ The memo</p>
+            <p className="compose__lead">
               No switch found for this topic, or it isn&apos;t reachable yet.
             </p>
           </div>

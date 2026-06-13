@@ -14,7 +14,6 @@ import { useState } from "react";
 import { cancelMemo } from "@/lib/types.ts";
 import type { SwitchView } from "@/lib/types.ts";
 import { usePirate } from "./scene/PirateContext.tsx";
-import { MIN_ACTION_MS } from "@/lib/pirate.ts";
 
 export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh?: () => void }) {
   const [open, setOpen] = useState(false);
@@ -46,7 +45,7 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
     setBusy(true);
     try {
       await runWhile(
-        "thinking",
+        "waiting",
         async () => {
           const res = await fetch("/api/cancel", {
             method: "POST",
@@ -63,7 +62,6 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
           if (onRefresh) onRefresh();
           else if (typeof window !== "undefined") window.location.reload();
         },
-        MIN_ACTION_MS,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -73,32 +71,25 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
   }
 
   return (
-    <div className="panel panel--danger p-5">
-      <h2 className="panel-title">Cancel switch</h2>
-      <p className="panel-note mt-1 text-xs">
-        Cancelling tears down the release schedule and shreds the ladder. It is authorized
-        by a Ledger-signed transfer, not by this page — the watcher honors the signed memo
-        even if you close this tab.
-      </p>
+    <div className="compose compose--danger">
+      <p className="compose__tag">☠ Stand down · authorized by a Ledger transfer, not this page</p>
 
-      {message ? <p className="mt-3 text-xs text-[color:#7ce0a0]">{message}</p> : null}
-      {error ? <p className="mt-3 break-words text-xs text-[color:var(--red)]">{error}</p> : null}
+      {message ? <p className="compose__ok">{message}</p> : null}
+      {error ? <p className="compose__err break-words">{error}</p> : null}
 
       {!open ? (
-        <button disabled={busy} onClick={() => setOpen(true)} className="btn btn--danger mt-4">
-          Cancel this switch…
+        <button disabled={busy} onClick={() => setOpen(true)} className="btn btn--danger">
+          Stand the pact down…
         </button>
       ) : (
-        <div className="mt-4 space-y-3 rounded-lg border border-[color:var(--panel-border)] p-3">
-          <p className="panel-note text-xs">
-            1. On your Ledger, sign a 1 tinybar transfer to the agent with this exact memo:
+        <div className="space-y-2.5">
+          <p className="compose__lead">
+            1. On yer Ledger, sign a 1 tinybar transfer to the agent with this exact memo:
           </p>
-          <p className="mono break-all rounded-md border border-[color:var(--panel-border)] bg-black/30 p-2 text-xs text-[color:var(--gold-bright)]">
-            {cancelMemo(view.topicId)}
-          </p>
-          <p className="panel-note text-xs">
-            2. Paste the transaction id to honor it now (or leave this tab — the backstop
-            will pick it up within seconds).
+          <p className="peek__body">{cancelMemo(view.topicId)}</p>
+          <p className="compose__lead">
+            2. Paste the tx id to honor it now — or just leave; the watcher backstop picks
+            up the signed transfer within seconds.
           </p>
           <input
             value={ledgerAccountId}
@@ -113,7 +104,7 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
             className="field"
           />
           <button disabled={busy} onClick={submitCancel} className="btn btn--danger w-full">
-            {busy ? "Cancelling…" : "Honor cancel now"}
+            {busy ? "Standin’ down…" : "Honor cancel now"}
           </button>
         </div>
       )}

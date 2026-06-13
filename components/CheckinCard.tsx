@@ -17,7 +17,6 @@ import { useState } from "react";
 
 import { WorldVerifyCard, type WorldVerified } from "@/components/WorldVerifyCard.tsx";
 import { usePirate } from "@/components/scene/PirateContext.tsx";
-import { MIN_ACTION_MS } from "@/lib/pirate.ts";
 import { buildCheckinRequest, isExhausted } from "@/lib/checkin-client.ts";
 import type {
   CheckinInput,
@@ -66,27 +65,20 @@ export function CheckinCard({
   if (status.kind === "success") {
     const r = status.result;
     return (
-      <div className="panel panel--ok p-5">
-        <h2 className="panel-title">Checked in.</h2>
-        <p className="panel-note mt-2 text-sm">
-          Release postponed. You burned the soonest rung and advanced to seq{" "}
-          <span className="mono text-[color:var(--cream)]">{r.seq}</span> (rung{" "}
-          <span className="mono text-[color:var(--cream)]">{r.liveIdx}</span>).
-        </p>
-        <p className="panel-note mt-1 text-sm">
-          New deadline:{" "}
-          <span className="mono text-[color:var(--cream)]">
-            {new Date(r.newDeadline).toUTCString()}
-          </span>
+      <div className="compose compose--ok">
+        <p className="compose__tag">✅ Checked in — still breathing</p>
+        <p className="compose__lead">
+          Burned the nearest rung. Now at signal{" "}
+          <span className="mono">{r.seq}</span> (rung <span className="mono">{r.liveIdx}</span>);
+          release shoved out to{" "}
+          <span className="mono">{new Date(r.newDeadline).toUTCString()}</span>.
         </p>
         <button
           type="button"
-          onClick={() =>
-            onCheckedIn ? setStatus({ kind: "idle" }) : window.location.reload()
-          }
-          className="btn btn--gold mt-4"
+          onClick={() => (onCheckedIn ? setStatus({ kind: "idle" }) : window.location.reload())}
+          className="btn btn--gold"
         >
-          {onCheckedIn ? "Done" : "Refresh status"}
+          {onCheckedIn ? "Aye, carry on" : "Refresh status"}
         </button>
       </div>
     );
@@ -98,11 +90,11 @@ export function CheckinCard({
   // nothing to check in. Show the imminent-release notice instead of the gate.
   if (isExhausted(built)) {
     return (
-      <div className="panel panel--released p-5">
-        <h2 className="panel-title">Check in</h2>
-        <p className="mt-2 text-sm text-[color:var(--gold-bright)]">
-          No postponements left — release is imminent. The final rung is armed and will
-          fire at its deadline; there is no further check-in to make.
+      <div className="compose compose--released">
+        <p className="compose__tag">⏳ No postponements left</p>
+        <p className="compose__lead">
+          The final rung is armed and will fire at its deadline — there is no further
+          check-in to make.
         </p>
       </div>
     );
@@ -130,9 +122,10 @@ export function CheckinCard({
       input,
       artifacts,
     };
-    // The captain ponders the postponement for at least MIN_ACTION_MS so the beat reads.
+    // The captain waits through the network round-trip; thinking is reserved for
+    // the signed-but-not-yet-armed setup gap.
     await runWhile(
-      "thinking",
+      "waiting",
       async () => {
         try {
           const res = await fetch("/api/checkin", {
@@ -167,37 +160,27 @@ export function CheckinCard({
           });
         }
       },
-      MIN_ACTION_MS,
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="panel p-5">
-        <h2 className="panel-title">Check in to postpone</h2>
-        <p className="panel-note mt-1 text-sm">
-          Prove you&apos;re still here. A verified-human check-in burns the soonest rung
-          and pushes release out one interval — to{" "}
-          <span className="mono text-[color:var(--cream)]">
-            {new Date(newDeadline).toUTCString()}
-          </span>{" "}
-          (seq <span className="mono text-[color:var(--cream)]">{newSeq}</span>).
+    <div className="space-y-3">
+      <p className="compose__lead">
+        Prove yer still here an’ I’ll shove release out to{" "}
+        <span className="mono">{new Date(newDeadline).toUTCString()}</span> (signal{" "}
+        <span className="mono">{newSeq}</span>).
+      </p>
+      {status.kind === "error" ? (
+        <p className="compose__err">
+          <span className="mono">{status.error.code}</span>: {status.error.message}
         </p>
-        {status.kind === "submitting" ? (
-          <p className="panel-note mt-3 text-xs">Submitting check-in…</p>
-        ) : null}
-        {status.kind === "error" ? (
-          <p className="mt-3 text-xs text-[color:var(--red)]">
-            <span className="mono">{status.error.code}</span>: {status.error.message}
-          </p>
-        ) : null}
-      </div>
+      ) : null}
 
       {/* The World gate over the COMPUTED signal — disabled while the POST is in flight
           (a fresh proof is single-use; don't let a double-tap fire two check-ins). */}
       {status.kind === "submitting" ? (
-        <div className="panel p-5 opacity-50">
-          <p className="panel-note text-sm">Verifying… please wait.</p>
+        <div className="compose">
+          <p className="compose__lead">Verifyin’… hold fast.</p>
         </div>
       ) : (
         <WorldVerifyCard
