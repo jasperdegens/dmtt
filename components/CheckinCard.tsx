@@ -9,11 +9,9 @@
 // then POSTs /api/checkin. On success the soonest rung is burned and release is pushed
 // out one interval.
 //
-// PHASE-3 SCOPE: World verify flags are OFF (executors don't re-verify proofs yet), so
-// we forward a PLACEHOLDER WorldProof carrying only the verified nullifier_hash. The
-// REAL IDKit proof (proof / merkle_root) must be forwarded here once verifyCheckinProof
-// flips on in Phase 5 — see the comment at handleVerified(). We do NOT pretend to verify
-// what we aren't: the placeholder is explicit, not a silent stub.
+// The compact WorldProof stays in the audit event. When IDKit supplied a full v4
+// response, we also forward that response so the executor can re-verify against the
+// Developer Portal endpoint, whose v4 payload requires responses[].
 
 import { useState } from "react";
 
@@ -26,6 +24,7 @@ import type {
   ExecError,
   SwitchView,
   WorldEnvironment,
+  WorldIdkitResponse,
   WorldProof,
 } from "@/lib/types.ts";
 
@@ -42,6 +41,10 @@ type Status =
   | { kind: "submitting" }
   | { kind: "success"; result: CheckinResult }
   | { kind: "error"; error: ExecError | { code: string; message: string } };
+
+type CheckinArtifactsWithIdkit = CheckinArtifacts & {
+  idkitResponse?: WorldIdkitResponse;
+};
 
 export function CheckinCard({
   view,
@@ -104,21 +107,23 @@ export function CheckinCard({
 
   const { input, newDeadline, newSeq } = built;
 
-  // The World gate fired with a verified nullifier — POST the check-in. In Phase 3
-  // (verifyCheckinProof OFF) we forward a placeholder proof carrying only the nullifier;
-  // the executor doesn't re-verify it. PHASE 5 (flags ON): forward the REAL IDKit
-  // response/proof here instead so /api/v4/verify can re-check it — the placeholder MUST
-  // be replaced, not extended.
-  async function handleVerified({ nullifier }: WorldVerified) {
+  // The World gate fired with a verified nullifier — POST the check-in. We keep the
+  // compact proof for CHECKIN_VERIFIED, and include the full IDKit response for the
+  // server-side v4 verify pass when the widget supplied one.
+  async function handleVerified({ nullifier, idkitResponse }: WorldVerified) {
     setStatus({ kind: "submitting" });
     const proof: WorldProof = {
-      proof: "", // Phase 5: real IDKit proof.
-      merkle_root: "", // Phase 5: real IDKit merkle_root.
+      proof: "",
+      merkle_root: "",
       nullifier_hash: nullifier,
       verification_level: "orb",
     };
-    const artifacts: CheckinArtifacts = { proof, action: WORLD_ACTION };
-    const payload: { input: CheckinInput; artifacts: CheckinArtifacts } = {
+    const artifacts: CheckinArtifactsWithIdkit = {
+      proof,
+      action: WORLD_ACTION,
+      ...(idkitResponse ? { idkitResponse } : {}),
+    };
+    const payload: { input: CheckinInput; artifacts: CheckinArtifactsWithIdkit } = {
       input,
       artifacts,
     };

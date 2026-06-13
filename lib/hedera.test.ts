@@ -14,6 +14,8 @@ import assert from "node:assert/strict";
 
 import {
   mirrorVerifyTransfer,
+  mirrorVerifyTransferWithRetry,
+  mirrorTxId,
   topicMessagesUrl,
   accountTransactionsUrl,
   parseAccountTransactions,
@@ -65,6 +67,18 @@ function stubFetch(status: number, body: unknown) {
   return async () => ({ status, json: async () => body });
 }
 
+function sequenceFetch(responses: Array<{ status: number; body: unknown }>) {
+  const urls: string[] = [];
+  let i = 0;
+  const fetchFn = async (input: string) => {
+    urls.push(input);
+    const r = responses[Math.min(i, responses.length - 1)];
+    i += 1;
+    return { status: r.status, json: async () => r.body };
+  };
+  return { fetchFn, urls };
+}
+
 // ── mirrorVerifyTransfer ─────────────────────────────────────────────────────
 
 test("mirrorVerifyTransfer: arm-memo happy path → ok, all checks true, memo decoded", async () => {
@@ -80,6 +94,11 @@ test("mirrorVerifyTransfer: arm-memo happy path → ok, all checks true, memo de
   assert.equal(r.memo, EXPECTED_MEMO);
   assert.deepEqual(r.checks, { success: true, memoMatch: true, debit: true });
   assert.equal(r.transactionId, TX_ID);
+});
+
+test("mirrorTxId: accepts SDK @ form and normalizes to mirror transaction_id form", () => {
+  assert.equal(mirrorTxId("0.0.1234567@1760000000.1"), "0.0.1234567-1760000000-000000001");
+  assert.equal(mirrorTxId(TX_ID), TX_ID);
 });
 
 test("mirrorVerifyTransfer: result !== SUCCESS → checks.success false, ok false", async () => {
@@ -176,6 +195,47 @@ test("mirrorVerifyTransfer: fetch throws → not_found (errs toward unverified)"
   const r = await mirrorVerifyTransfer(BASE, "0.0.1-1-1", {}, fetchFn);
   assert.equal(r.ok, false);
   assert.equal(r.reason, "not_found");
+});
+
+test("mirrorVerifyTransferWithRetry: retries missing tx until the mirror returns it", async () => {
+  const { fetchFn, urls } = sequenceFetch([
+    { status: 404, body: null },
+    { status: 200, body: { transactions: [] } },
+    { status: 200, body: { transactions: [rawTx()] } },
+  ]);
+  const sleeps: number[] = [];
+
+  const r = await mirrorVerifyTransferWithRetry(
+    BASE,
+    "0.0.1234567@1760000000.1",
+    { expectedMemo: EXPECTED_MEMO, debitAccountId: LEDGER_ACCOUNT },
+    { attempts: 4, delayMs: 25, sleep: async (ms) => { sleeps.push(ms); } },
+    fetchFn,
+  );
+
+  assert.equal(r.ok, true);
+  assert.equal(urls.length, 3);
+  assert.equal(sleeps.length, 2);
+  assert.ok(urls[0].endsWith("/api/v1/transactions/0.0.1234567-1760000000-000000001"));
+});
+
+test("mirrorVerifyTransferWithRetry: does not retry a forged/wrong memo row", async () => {
+  const { fetchFn, urls } = sequenceFetch([
+    { status: 200, body: { transactions: [rawTx()] } },
+    { status: 200, body: { transactions: [rawTx()] } },
+  ]);
+
+  const r = await mirrorVerifyTransferWithRetry(
+    BASE,
+    TX_ID,
+    { expectedMemo: armMemo("0".repeat(64)), debitAccountId: LEDGER_ACCOUNT },
+    { attempts: 4, delayMs: 25, sleep: async () => {} },
+    fetchFn,
+  );
+
+  assert.equal(r.ok, false);
+  assert.equal(r.checks.memoMatch, false);
+  assert.equal(urls.length, 1);
 });
 
 test("topicMessagesUrl: omits sequence filter for first page / afterSeq 0", () => {
