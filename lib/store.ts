@@ -15,7 +15,6 @@
 import {
   mkdir,
   readFile,
-  writeFile,
   readdir,
   rename,
   unlink,
