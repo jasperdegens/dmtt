@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DMTT — nautical button + type proposal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+    <!-- same families as app/layout.tsx -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Pirata+One&display=swap"
+    />
+    <style>
+      /* This file is a STANDALONE preview — the rules below are copied verbatim from
+         app/globals.css so what you see here is what ships. Open it directly (file://)
+         or visit /buttons-preview.html while `pnpm dev` runs. */
+      :root {
+        --gold: #e0a83a;
+        --gold-bright: #f4d06a;
+        --gold-deep: #b07d1e;
+        --gold-extra-deep: #5d410e;
+        --red: #c8423a;
+        --cream: #e8dcc0;
+        --cream-bright: #f3e8cc;
+        --ink: #0f1f2e;
+
+        --font-display: "Pirata One", "Cinzel Decorative", system-ui, serif;
+        --font-engrave: "Cinzel", "Cinzel Decorative", Georgia, serif;
+        --font-body: "EB Garamond", Georgia, "Times New Roman", serif;
+        --font-caps: var(--font-engrave);
+        --font-ui: "EB Garamond", Georgia, serif;
+
+        --wood-top: #5a3618;
+        --wood-bot: #38210e;
+        --brass: #caa23f;
+        --brass-bot: #936c1c;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--cream);
+        font-family: var(--font-body);
+        -webkit-font-smoothing: antialiased;
+        /* a stormy-cabin backdrop so the plaques are judged in context */
+        background:
+          radial-gradient(120% 80% at 70% 12%, rgba(42, 87, 108, 0.4) 0%, transparent 46%),
+          linear-gradient(180deg, #060c14 0%, #0d1824 45%, #0a151d 100%);
+        padding: clamp(20px, 5vw, 64px);
+      }
+      .wrap { max-width: 1080px; margin: 0 auto; }
+      .lede {
+        font-family: var(--font-display);
+        font-size: clamp(38px, 7vw, 84px);
+        color: #07070a;
+        -webkit-text-stroke: 2px var(--gold-extra-deep);
+        line-height: 0.85;
+        margin: 0 0 0.1em;
+        filter: brightness(1.5);
+      }
+      .sub { font-size: 1.15rem; color: color-mix(in srgb, var(--cream) 80%, transparent); margin: 0 0 2.4rem; max-width: 60ch; }
+      h2.section {
+        font-family: var(--font-engrave);
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        color: var(--gold);
+        margin: 2.6rem 0 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid color-mix(in srgb, var(--gold) 28%, transparent);
+      }
+      .row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 0.6rem; }
+      .label { width: 100%; font-family: var(--font-engrave); letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.66rem; color: color-mix(in srgb, var(--cream) 55%, transparent); margin-top: 0.6rem; }
+      .panel { background: #15263a; border: 1.5px solid color-mix(in srgb, var(--gold) 50%, transparent); border-radius: 10px; padding: 1.1rem 1.2rem; box-shadow: 0 14px 36px rgba(0,0,0,0.5); }
+      .stack { display: flex; flex-direction: column; gap: 0.75rem; max-width: 380px; }
+
+      /* ===================== BUTTONS (verbatim from globals.css) ===================== */
+      .btn {
+        --frame: var(--gold-deep);
+        --frame-line: var(--gold-bright);
+        --panel-top: var(--wood-top);
+        --panel-bot: var(--wood-bot);
+        --ink: #ffe7bd;
+        --cut: 12px;
+        position: relative; isolation: isolate;
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.5em;
+        font-family: var(--font-engrave); font-weight: 600; text-transform: none;
+        letter-spacing: 0.045em; font-size: 1rem; line-height: 1.1;
+        min-height: 46px; padding: 0.72rem 1.35rem; border: 0; color: var(--ink);
+        background-color: var(--frame); background-repeat: no-repeat; background-position: center;
+        background-image:
+          repeating-linear-gradient(90deg, rgba(0,0,0,0.13) 0 1.5px, transparent 1.5px 5px),
+          linear-gradient(180deg, var(--panel-top), var(--panel-bot)),
+          linear-gradient(180deg, var(--frame-line), var(--frame));
+        background-size:
+          calc(100% - 18px) calc(100% - 18px),
+          calc(100% - 18px) calc(100% - 18px),
+          calc(100% - 14px) calc(100% - 14px);
+        clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 calc(100% - var(--cut)), 0 var(--cut));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -3px 5px rgba(0,0,0,0.42), inset 0 0 0 1px rgba(0,0,0,0.28);
+        filter: drop-shadow(0 5px 11px rgba(0,0,0,0.5));
+        text-shadow: 0 1px 0 rgba(0,0,0,0.55), 0 -1px 0 rgba(255,255,255,0.05);
+        cursor: pointer; transition: filter 0.16s ease, transform 0.12s ease, background-color 0.16s ease;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .btn::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 32%, rgba(255,244,208,0.26) 48%, transparent 64%); transform: translateX(-130%); transition: transform 0.55s ease; }
+      .btn:hover:not(:disabled) { transform: translateY(-1px); filter: drop-shadow(0 8px 16px rgba(0,0,0,0.55)) brightness(1.07); }
+      .btn:hover:not(:disabled)::after { transform: translateX(130%); }
+      .btn:focus-visible { outline: 2px solid color-mix(in srgb, var(--gold-bright) 80%, transparent); outline-offset: 3px; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--gold-bright) 70%, transparent)) drop-shadow(0 5px 11px rgba(0,0,0,0.5)); }
+      .btn:active:not(:disabled) { transform: translateY(1px); filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5)); box-shadow: inset 0 2px 6px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(0,0,0,0.32); }
+      .btn:disabled { cursor: default; filter: grayscale(0.35) brightness(0.82); opacity: 0.62; }
+      .btn--gold { --frame: var(--gold); --frame-line: var(--gold-bright); --panel-top: #74471f; --panel-bot: #41250f; --ink: #ffe9c2; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -3px 5px rgba(0,0,0,0.42), inset 0 0 14px rgba(244,208,106,0.14), inset 0 0 0 1px rgba(0,0,0,0.26); }
+      .btn--ghost { --frame: var(--gold-deep); --frame-line: #c79e49; --panel-top: #3f2913; --panel-bot: #281806; --ink: #f0dcb4; }
+      .btn--danger { --frame: var(--gold-deep); --frame-line: var(--gold-bright); --panel-top: #7c2820; --panel-bot: #4d130d; --ink: #ffe2d4; }
+      .btn--danger:hover:not(:disabled) { filter: drop-shadow(0 8px 16px rgba(0,0,0,0.55)) brightness(1.1); }
+      .btn--lg { font-size: 1.1rem; min-height: 56px; padding: 0.98rem 1.4rem; --cut: 15px; }
+      .btn--danger-ghost { --frame: #834034; --frame-line: #c06b58; --panel-top: #3a201a; --panel-bot: #251210; --ink: #ffcdbf; }
+      .btn--danger-ghost.is-on { --frame: var(--gold-deep); --frame-line: var(--gold-bright); --panel-top: #7c2820; --panel-bot: #4d130d; --ink: #ffe2d4; }
+      .btn--gold.is-on { --frame: var(--gold-bright); --frame-line: #fff0c4; --panel-top: var(--brass); --panel-bot: var(--brass-bot); --ink: #2a1605; }
+      .w-full { width: 100%; }
+
+      .qchip {
+        --frame: var(--gold-deep); --frame-line: var(--gold-bright); --panel-top: #4a2f16; --panel-bot: #2e1c0b; --ink: #f3e1ba;
+        position: relative; isolation: isolate; font-family: var(--font-engrave); font-weight: 600; letter-spacing: 0.035em; font-size: 0.95rem; line-height: 1.1; padding: 0.6rem 1.05rem; border: 0; color: var(--ink);
+        background-color: var(--frame); background-repeat: no-repeat; background-position: center;
+        background-image: linear-gradient(180deg, var(--panel-top), var(--panel-bot)), linear-gradient(180deg, var(--frame-line), var(--frame));
+        background-size: calc(100% - 13px) calc(100% - 13px), calc(100% - 10px) calc(100% - 10px);
+        clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+        box-shadow: inset 0 -2px 4px rgba(0,0,0,0.4); filter: drop-shadow(0 3px 7px rgba(0,0,0,0.45));
+        cursor: pointer; transition: filter 0.15s ease, transform 0.12s ease;
+      }
+      .qchip:hover { transform: translateY(-1px); filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5)) brightness(1.06); }
+      .qchip--active { --frame: var(--gold-bright); --frame-line: #fff0c4; --panel-top: var(--brass); --panel-bot: var(--brass-bot); --ink: #2a1605; }
+
+      .tab {
+        position: relative; isolation: isolate; font-family: var(--font-engrave); font-weight: 600; letter-spacing: 0.04em; font-size: 0.95rem; padding: 0.5rem 1rem; border: 0; color: #f0dcb4;
+        background-color: var(--gold-deep); background-repeat: no-repeat; background-position: center;
+        background-image: linear-gradient(180deg, #3f2913, #281806), linear-gradient(180deg, var(--gold-bright), var(--gold-deep));
+        background-size: calc(100% - 12px) calc(100% - 12px), calc(100% - 9px) calc(100% - 9px);
+        clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px);
+        box-shadow: inset 0 -2px 4px rgba(0,0,0,0.4); filter: drop-shadow(0 3px 7px rgba(0,0,0,0.45));
+        cursor: pointer; transition: filter 0.15s ease, transform 0.12s ease;
+      }
+      .tab:hover { transform: translateY(-1px); filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5)) brightness(1.06); }
+      .tab--active { color: #2a1605; background-color: var(--gold-bright); background-image: linear-gradient(180deg, var(--brass), var(--brass-bot)), linear-gradient(180deg, #fff0c4, var(--gold-deep)); }
+
+      .about-btn {
+        --frame: var(--gold-deep); --frame-line: var(--gold-bright);
+        position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.6rem 1.1rem; border: 0; color: #f3e1ba;
+        background-color: var(--frame); background-repeat: no-repeat; background-position: center;
+        background-image: linear-gradient(180deg, #4a2f16, #2c1a09), linear-gradient(180deg, var(--frame-line), var(--frame));
+        background-size: calc(100% - 14px) calc(100% - 14px), calc(100% - 11px) calc(100% - 11px);
+        clip-path: polygon(11px 0, calc(100% - 11px) 0, 100% 11px, 100% calc(100% - 11px), calc(100% - 11px) 100%, 11px 100%, 0 calc(100% - 11px), 0 11px);
+        box-shadow: inset 0 -2px 4px rgba(0,0,0,0.4); filter: drop-shadow(0 4px 9px rgba(0,0,0,0.5));
+        cursor: pointer; transition: filter 0.15s ease, transform 0.12s ease;
+      }
+      .about-btn:hover { transform: translateY(-1px); filter: drop-shadow(0 7px 13px rgba(0,0,0,0.55)) brightness(1.07); }
+      .about-btn__icon { font-size: 1.25rem; color: var(--gold-bright); }
+      .about-btn__title { font-family: var(--font-engrave); font-weight: 600; font-size: 0.98rem; letter-spacing: 0.04em; color: #f3e1ba; }
+
+      /* type specimens */
+      .specimen { display: grid; grid-template-columns: 90px 1fr; gap: 0.4rem 1.4rem; align-items: baseline; }
+      .specimen dt { font-family: var(--font-engrave); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.62rem; color: var(--gold); padding-top: 0.5rem; }
+      .specimen dd { margin: 0; }
+      .sp-hero { font-family: var(--font-display); font-size: 2.6rem; color: var(--gold-bright); line-height: 1; }
+      .sp-engrave { font-family: var(--font-engrave); font-weight: 600; font-size: 1.5rem; letter-spacing: 0.04em; color: var(--cream-bright); }
+      .sp-body { font-family: var(--font-body); font-size: 1.05rem; line-height: 1.55; color: color-mix(in srgb, var(--cream) 92%, #fff); max-width: 56ch; }
+      .sp-label { font-family: var(--font-engrave); text-transform: uppercase; letter-spacing: 0.22em; font-size: 0.74rem; color: var(--gold); }
+      .note { font-style: italic; color: color-mix(in srgb, var(--cream) 60%, transparent); font-size: 0.92rem; margin: 0.4rem 0 0; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <p class="sp-label">Dead Men Tell Tales · design proposal</p>
+      <h1 class="lede">Carved&nbsp;nameplates</h1>
+      <p class="sub">
+        Every control becomes a bevelled wood-and-gold cartouche — a brass plaque from the
+        captain's cabin — with engraved Cinzel lettering. Hover, focus, and press them; the
+        brass sheen sweeps and the plaque lifts. Pure CSS, no images, recolourable per variant.
+      </p>
+
+      <h2 class="section">Primary actions (the lead plaque)</h2>
+      <div class="panel">
+        <div class="stack">
+          <button class="btn btn--gold w-full">Seal it ⚓</button>
+          <button class="btn btn--gold btn--lg w-full">✋ Check in</button>
+          <button class="btn btn--gold btn--lg w-full is-on">✋ Check in · open (lit brass)</button>
+          <button class="btn btn--gold w-full">⚓ Arm the pact</button>
+          <button class="btn btn--gold w-full" disabled>Sealin' the chest… (disabled)</button>
+        </div>
+      </div>
+
+      <h2 class="section">Secondary &amp; destructive</h2>
+      <div class="row">
+        <button class="btn">Use mock artifact</button>
+        <button class="btn btn--ghost">Simulate verification</button>
+        <button class="btn btn--danger">Terminate the switch</button>
+        <button class="btn btn--danger-ghost">Terminate</button>
+        <button class="btn btn--danger-ghost is-on">Terminate · open</button>
+      </div>
+
+      <h2 class="section">Quick-reply chips &amp; segmented tabs</h2>
+      <div class="row">
+        <button class="qchip qchip--active">✍ Write a note</button>
+        <button class="qchip">📎 Drop a file</button>
+        <button class="qchip qchip--active">Every minute</button>
+        <button class="qchip">Every day</button>
+        <button class="qchip">Every week</button>
+      </div>
+      <div class="row">
+        <button class="tab tab--active">Note</button>
+        <button class="tab">File</button>
+        <button class="about-btn"><span class="about-btn__icon">⚓</span><span class="about-btn__title">About the project</span></button>
+      </div>
+
+      <h2 class="section">Type system (everything aside from the hero)</h2>
+      <div class="panel">
+        <dl class="specimen">
+          <dt>Hero</dt>
+          <dd><div class="sp-hero">Dead Men Tell Tales</div><p class="note">Pirata One — unchanged.</p></dd>
+          <dt>Engraved</dt>
+          <dd><div class="sp-engrave">Arm the Pact · Check In · Terminate</div><p class="note">Cinzel — buttons, titles, eyebrows, badges (was Alegreya Sans / IM Fell SC).</p></dd>
+          <dt>Body</dt>
+          <dd><p class="sp-body">If you are reading this, I have gone quiet. The enclosed memo is now public — the network kept its watch, and the dead, at last, tell tales.</p><p class="note">EB Garamond — chat, fields, prose (was IM Fell English).</p></dd>
+          <dt>Label</dt>
+          <dd><div class="sp-label">Sealed in your browser</div></dd>
+        </dl>
+      </div>
+
+      <p class="note" style="margin-top: 2.5rem">
+        Tip: tab through the buttons to see the focus ring, and hold one down to feel the press.
+      </p>
+    </div>
+  </body>
+</html>

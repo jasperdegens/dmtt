@@ -1,10 +1,11 @@
 @import "tailwindcss";
 
-/* Pirate display/body fonts (Pirata One, IM Fell English[ SC]) plus the readable UI
-   face (Alegreya Sans) are loaded via <link>
-   in app/layout.tsx — keeping them out of CSS @import avoids the Tailwind-v4 ordering
-   warning and the render-blocking import. Fallbacks (serif) keep the layout intact if
-   the web fonts are slow or offline. */
+/* Three faces, loaded via <link> in app/layout.tsx (keeping them out of CSS @import
+   avoids the Tailwind-v4 ordering warning + the render-blocking import):
+     · Pirata One  — the hero/brand display only (unchanged).
+     · Cinzel      — engraved labels, buttons, eyebrows, badges (brass-plaque type).
+     · EB Garamond — all running body/chat/field copy (replaces IM Fell English SC/Sans).
+   Serif fallbacks keep the layout intact if the web fonts are slow or offline. */
 
 /* ============================================================================
    Dead Men Tell Tales — pirate design system (Phase 8)
@@ -36,11 +37,23 @@
   --sea: #091420;
   --sea-glow: #2a576c;
 
-  /* typography */
+  /* typography
+     --font-display stays Pirata One (hero/brand only). --font-engrave (Cinzel) is the
+     new engraved face for buttons + labels. --font-body/-ui/-caps now resolve to the
+     readable Garamond/Cinzel pair, so every existing var() reference upgrades at once. */
   --font-display: "Pirata One", "Cinzel Decorative", system-ui, serif;
-  --font-body: "IM Fell English", Georgia, "Times New Roman", serif;
-  --font-caps: "IM Fell English SC", var(--font-body);
-  --font-ui: "Alegreya Sans", system-ui, sans-serif;
+  --font-engrave: "Cinzel", "Cinzel Decorative", Georgia, serif;
+  --font-body: "EB Garamond", Georgia, "Times New Roman", serif;
+  --font-caps: var(--font-engrave);
+  --font-ui: "EB Garamond", Georgia, serif;
+
+  /* nautical plaque tokens — wood panel + brass behind every button (see BUTTONS).
+     Each button sets --frame/--frame-line/--panel-top/--panel-bot/--ink; the shared
+     .btn recipe paints a cut-corner cartouche from them, so a variant is 4 colours. */
+  --wood-top: #5a3618;
+  --wood-bot: #38210e;
+  --brass: #caa23f;
+  --brass-bot: #936c1c;
 
   /* surfaces */
   --panel-border: color-mix(in srgb, var(--gold) 50%, transparent);
@@ -159,88 +172,194 @@ body.scene-locked {
 }
 
 /* ============================== BUTTONS ============================== */
+/* The "cartouche plaque": every button is a carved nameplate — a wood panel inside a
+   double gold rule, with cut (bevelled) corners and engraved Cinzel lettering. The whole
+   frame is painted from four custom props (--frame / --frame-line / --panel-top /
+   --panel-bot) plus the engraved --ink, so each variant is just a recolour. No images:
+   the gold frame is the element's own background-color; two centred, no-repeat gradient
+   layers sit on top of it — a slightly-inset bright rule, then the wood panel — leaving
+   concentric gold bands at the edge. clip-path bevels all four corners (it carves the
+   gold frame too, so the corners read solid, not open). drop-shadow gives the lift that
+   clip-path would otherwise eat; inset shadows carve the text well. */
 .btn {
+  /* default = the reference plaque: teak panel, gold rule, warm cream engraving */
+  --frame: var(--gold-deep);
+  --frame-line: var(--gold-bright);
+  --panel-top: var(--wood-top);
+  --panel-bot: var(--wood-bot);
+  --ink: #ffe7bd;
+  --cut: 12px;
+
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5em;
-  font-family: var(--font-ui);
-  font-weight: 700;
+  font-family: var(--font-engrave);
+  font-weight: 600;
   text-transform: none;
-  letter-spacing: 0;
+  letter-spacing: 0.045em;
   font-size: 1rem;
-  line-height: 1.15;
-  min-height: 44px;
-  padding: 0.7rem 1.1rem;
+  line-height: 1.1;
+  min-height: 46px;
+  padding: 0.72rem 1.35rem;
   border: 0;
-  border-radius: 5px;
-  background: #123a58;
-  color: #fff4d7;
-  box-shadow: none;
+  color: var(--ink);
+
+  /* gold frame = the element's own background; two centred layers carve the rule + panel */
+  background-color: var(--frame);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-image:
+    /* faint vertical wood grain (transparent gaps let the panel sheen show through) */
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.13) 0 1.5px,
+      transparent 1.5px 5px
+    ),
+    /* the wood panel itself (top-lit) */
+    linear-gradient(180deg, var(--panel-top), var(--panel-bot)),
+    /* the bright inner rule, just outside the panel */
+    linear-gradient(180deg, var(--frame-line), var(--frame));
+  background-size:
+    calc(100% - 18px) calc(100% - 18px),
+    calc(100% - 18px) calc(100% - 18px),
+    calc(100% - 14px) calc(100% - 14px);
+
+  /* bevelled-corner cartouche silhouette */
+  clip-path: polygon(
+    var(--cut) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut)),
+    0 var(--cut)
+  );
+
+  /* carved well: light top inner edge, deep bottom inner shadow, hairline seam */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.42),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.28);
+  filter: drop-shadow(0 5px 11px rgba(0, 0, 0, 0.5));
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.55),
+    0 -1px 0 rgba(255, 255, 255, 0.05);
+
   cursor: pointer;
   transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    filter 0.15s ease;
+    filter 0.16s ease,
+    transform 0.12s ease,
+    background-color 0.16s ease;
   -webkit-tap-highlight-color: transparent;
 }
+/* a brass sheen that sweeps across the plaque on hover */
+.btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 32%,
+    rgba(255, 244, 208, 0.26) 48%,
+    transparent 64%
+  );
+  transform: translateX(-130%);
+  transition: transform 0.55s ease;
+}
 .btn:hover:not(:disabled) {
-  background: #174767;
+  transform: translateY(-1px);
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.55)) brightness(1.07);
+}
+.btn:hover:not(:disabled)::after {
+  transform: translateX(130%);
 }
 .btn:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--gold-bright) 80%, transparent);
   outline-offset: 3px;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--gold-bright) 70%, transparent))
+    drop-shadow(0 5px 11px rgba(0, 0, 0, 0.5));
 }
-.btn:active {
-  filter: brightness(0.92);
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.32);
 }
 .btn:disabled {
-  opacity: 0.5;
   cursor: default;
+  filter: grayscale(0.35) brightness(0.82);
+  opacity: 0.62;
 }
+
+/* PRIMARY — the lead plaque: warmer mahogany, bright gold rule, a faint inner glow */
 .btn--gold {
-  color: #160d04;
-  background: #d69722;
-  text-shadow: none;
+  --frame: var(--gold);
+  --frame-line: var(--gold-bright);
+  --panel-top: #74471f;
+  --panel-bot: #41250f;
+  --ink: #ffe9c2;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.42),
+    inset 0 0 14px rgba(244, 208, 106, 0.14),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.26);
 }
-.btn--gold:hover:not(:disabled) {
-  background: #e2a62d;
-}
+/* a quiet plaque (dev mock, simulate) — dim rule, dark teak */
 .btn--ghost {
-  color: #fff4d7;
-  background: #123a58;
+  --frame: var(--gold-deep);
+  --frame-line: #c79e49;
+  --panel-top: #3f2913;
+  --panel-bot: #281806;
+  --ink: #f0dcb4;
 }
-.btn--ghost:hover:not(:disabled) {
-  background: #174767;
-}
+/* a red-lacquer placard with gold trim (irreversible actions) */
 .btn--danger {
-  color: #fff1e8;
-  background: #b6382e;
-  text-shadow: none;
+  --frame: var(--gold-deep);
+  --frame-line: var(--gold-bright);
+  --panel-top: #7c2820;
+  --panel-bot: #4d130d;
+  --ink: #ffe2d4;
 }
 .btn--danger:hover:not(:disabled) {
-  background: #c84338;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.55)) brightness(1.1);
 }
-/* a larger primary button (the live "Check in") */
+/* the larger primary plaque (the live "Check in") */
 .btn--lg {
-  font-size: 1.08rem;
-  letter-spacing: 0;
-  min-height: 54px;
-  padding: 0.95rem 1.25rem;
-  border-radius: 7px;
+  font-size: 1.1rem;
+  min-height: 56px;
+  padding: 0.98rem 1.4rem;
+  --cut: 15px;
 }
-/* a secondary, outline-danger button (the live "Terminate") — destructive but quiet */
+/* a quiet destructive plaque (the live "Terminate") — dark teak, oxblood rule,
+   lights to full red lacquer when its ceremony is open (.is-on) */
 .btn--danger-ghost {
-  color: #ffd1ca;
-  background: #3b1d22;
-}
-.btn--danger-ghost:hover:not(:disabled) {
-  background: #4b2328;
-  color: #fdece2;
+  --frame: #834034;
+  --frame-line: #c06b58;
+  --panel-top: #3a201a;
+  --panel-bot: #251210;
+  --ink: #ffcdbf;
 }
 .btn--danger-ghost.is-on {
-  background: #b6382e;
-  color: #fdece2;
+  --frame: var(--gold-deep);
+  --frame-line: var(--gold-bright);
+  --panel-top: #7c2820;
+  --panel-bot: #4d130d;
+  --ink: #ffe2d4;
+}
+/* a toggled-open primary lights to polished brass (Check in is showing its gate) */
+.btn--gold.is-on,
+.bubble__actions-primary.is-on {
+  --frame: var(--gold-bright);
+  --frame-line: #fff0c4;
+  --panel-top: var(--brass);
+  --panel-bot: var(--brass-bot);
+  --ink: #2a1605;
 }
 
 .world-icon {
@@ -254,27 +373,53 @@ body.scene-locked {
   stroke-linejoin: round;
 }
 
-/* segmented tab buttons (memo note/file, interval units) */
+/* segmented tab buttons (memo note/file, interval units) — small kin of the plaque */
 .tab {
-  font-family: var(--font-ui);
-  font-weight: 700;
-  text-transform: none;
-  letter-spacing: 0;
+  position: relative;
+  isolation: isolate;
+  font-family: var(--font-engrave);
+  font-weight: 600;
+  letter-spacing: 0.04em;
   font-size: 0.95rem;
-  padding: 0.48rem 0.9rem;
+  padding: 0.5rem 1rem;
   border: 0;
-  border-radius: 5px;
-  background: #123a58;
-  color: #fff4d7;
+  color: #f0dcb4;
+  background-color: var(--gold-deep);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-image:
+    linear-gradient(180deg, #3f2913, #281806),
+    linear-gradient(180deg, var(--gold-bright), var(--gold-deep));
+  background-size:
+    calc(100% - 12px) calc(100% - 12px),
+    calc(100% - 9px) calc(100% - 9px);
+  clip-path: polygon(
+    9px 0,
+    calc(100% - 9px) 0,
+    100% 9px,
+    100% calc(100% - 9px),
+    calc(100% - 9px) 100%,
+    9px 100%,
+    0 calc(100% - 9px),
+    0 9px
+  );
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+  filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.45));
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition:
+    filter 0.15s ease,
+    transform 0.12s ease;
 }
 .tab:hover {
-  background: #174767;
+  transform: translateY(-1px);
+  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.5)) brightness(1.06);
 }
 .tab--active {
-  background: #d69722;
-  color: #160d04;
+  color: #2a1605;
+  background-color: var(--gold-bright);
+  background-image:
+    linear-gradient(180deg, var(--brass), var(--brass-bot)),
+    linear-gradient(180deg, #fff0c4, var(--gold-deep));
 }
 
 /* ============================== FIELDS ============================== */
@@ -883,27 +1028,50 @@ body.scene-locked {
 }
 
 /* ============================== ABOUT BUTTON + README MODAL ============================== */
+/* The lower-left "About" control is a wood plaque too (same cartouche recipe as .btn). */
 .about-btn {
+  --frame: var(--gold-deep);
+  --frame-line: var(--gold-bright);
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.55rem 1rem;
+  padding: 0.6rem 1.1rem;
   border: 0;
-  border-radius: 5px;
-  background: rgba(18, 58, 88, 0.94);
-  backdrop-filter: blur(3px);
-  box-shadow: none;
-  color: #fff4d7;
+  color: #f3e1ba;
+  background-color: var(--frame);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-image:
+    linear-gradient(180deg, #4a2f16, #2c1a09),
+    linear-gradient(180deg, var(--frame-line), var(--frame));
+  background-size:
+    calc(100% - 14px) calc(100% - 14px),
+    calc(100% - 11px) calc(100% - 11px);
+  clip-path: polygon(
+    11px 0,
+    calc(100% - 11px) 0,
+    100% 11px,
+    100% calc(100% - 11px),
+    calc(100% - 11px) 100%,
+    11px 100%,
+    0 calc(100% - 11px),
+    0 11px
+  );
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+  filter: drop-shadow(0 4px 9px rgba(0, 0, 0, 0.5));
   cursor: pointer;
   transition:
-    background 0.15s ease,
-    filter 0.15s ease;
+    filter 0.15s ease,
+    transform 0.12s ease;
 }
 .about-btn:hover {
-  background: rgba(23, 71, 103, 0.96);
+  transform: translateY(-1px);
+  filter: drop-shadow(0 7px 13px rgba(0, 0, 0, 0.55)) brightness(1.07);
 }
 .about-btn:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--gold-bright) 80%, transparent);
   outline-offset: 3px;
 }
 .about-btn__icon {
@@ -911,11 +1079,11 @@ body.scene-locked {
   color: var(--gold-bright);
 }
 .about-btn__title {
-  font-family: var(--font-ui);
-  font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: 0;
-  color: #fff4d7;
+  font-family: var(--font-engrave);
+  font-weight: 600;
+  font-size: 0.98rem;
+  letter-spacing: 0.04em;
+  color: #f3e1ba;
 }
 
 .about-overlay {
@@ -959,17 +1127,34 @@ body.scene-locked {
 }
 .about-modal__close {
   flex: 0 0 auto;
-  width: 2rem;
-  height: 2rem;
+  width: 2.1rem;
+  height: 2.1rem;
   border: 0;
-  border-radius: 5px;
-  background: #123a58;
-  color: #fff4d7;
-  box-shadow: none;
+  color: #f3e1ba;
+  background-color: var(--gold-deep);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-image:
+    linear-gradient(180deg, #4a2f16, #2c1a09),
+    linear-gradient(180deg, var(--gold-bright), var(--gold-deep));
+  background-size:
+    calc(100% - 9px) calc(100% - 9px),
+    calc(100% - 6px) calc(100% - 6px);
+  clip-path: polygon(
+    7px 0,
+    calc(100% - 7px) 0,
+    100% 7px,
+    100% calc(100% - 7px),
+    calc(100% - 7px) 100%,
+    7px 100%,
+    0 calc(100% - 7px),
+    0 7px
+  );
   cursor: pointer;
+  transition: filter 0.15s ease;
 }
 .about-modal__close:hover {
-  background: #174767;
+  filter: brightness(1.12);
 }
 .about-modal__close:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
@@ -1204,10 +1389,7 @@ body.scene-locked {
 .bubble__actions-primary {
   flex: 1 1 auto;
 }
-.bubble__actions-primary.is-on {
-  background: #e2a62d;
-  box-shadow: none;
-}
+/* the lit-brass .is-on look is defined with the button plaque (see BUTTONS) */
 
 /* compact step ladder, shown in the bubble head */
 .steps {
@@ -1378,37 +1560,64 @@ body.scene-locked {
   gap: 0.5rem;
 }
 
-/* tappable quick-reply controls — bright enough to read over the dark cabin panels */
+/* tappable quick-reply controls — small wood plaques, kin of .btn (carved from the same
+   four custom props), lit to brass when chosen (.qchip--active) */
 .qchip {
-  font-family: var(--font-ui);
-  font-weight: 700;
-  text-transform: none;
-  letter-spacing: 0;
-  font-size: 0.96rem;
-  line-height: 1.15;
-  padding: 0.62rem 1rem;
+  --frame: var(--gold-deep);
+  --frame-line: var(--gold-bright);
+  --panel-top: #4a2f16;
+  --panel-bot: #2e1c0b;
+  --ink: #f3e1ba;
+  position: relative;
+  isolation: isolate;
+  font-family: var(--font-engrave);
+  font-weight: 600;
+  letter-spacing: 0.035em;
+  font-size: 0.95rem;
+  line-height: 1.1;
+  padding: 0.6rem 1.05rem;
   border: 0;
-  border-radius: 5px;
-  background: #123a58;
-  color: #fff4d7;
-  box-shadow: none;
+  color: var(--ink);
+  background-color: var(--frame);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-image:
+    linear-gradient(180deg, var(--panel-top), var(--panel-bot)),
+    linear-gradient(180deg, var(--frame-line), var(--frame));
+  background-size:
+    calc(100% - 13px) calc(100% - 13px),
+    calc(100% - 10px) calc(100% - 10px);
+  clip-path: polygon(
+    10px 0,
+    calc(100% - 10px) 0,
+    100% 10px,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    10px 100%,
+    0 calc(100% - 10px),
+    0 10px
+  );
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+  filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.45));
   cursor: pointer;
   transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    filter 0.15s ease;
+    filter 0.15s ease,
+    transform 0.12s ease;
 }
 .qchip:hover {
-  background: #174767;
+  transform: translateY(-1px);
+  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.5)) brightness(1.06);
 }
 .qchip:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--gold-bright) 80%, transparent);
   outline-offset: 3px;
 }
 .qchip--active {
-  background: #d69722;
-  color: #160d04;
-  box-shadow: none;
+  --frame: var(--gold-bright);
+  --frame-line: #fff0c4;
+  --panel-top: var(--brass);
+  --panel-bot: var(--brass-bot);
+  --ink: #2a1605;
 }
 
 /* a quiet disclosure toggle for advanced / fine-print controls */
