@@ -14,7 +14,7 @@
 
 import { NextResponse } from "next/server";
 
-import { reduce, type ChatContext, type ChatEvent } from "@/lib/chat-machine.ts";
+import { narrate, reduce, type ChatContext, type ChatEvent } from "@/lib/chat-machine.ts";
 import { env } from "@/lib/env.ts";
 
 interface ChatRequest {
@@ -22,31 +22,6 @@ interface ChatRequest {
   context?: ChatContext;
   /** The artifact event to apply (or PARSE_TEXT for a free-text proposal). */
   event: ChatEvent;
-}
-
-/** Deterministic, model-free narration per resulting step (works LLM-offline). */
-function narrate(ctx: ChatContext): string {
-  if (ctx.error) {
-    return `I can't do that: ${ctx.error}. Each step needs its real artifact — I can't skip ahead.`;
-  }
-  switch (ctx.state) {
-    case "IDLE":
-      return "Let's set up your switch. First, write the memo — it's encrypted in your browser before anything leaves your device.";
-    case "TERMS":
-      return "Memo captured (encrypted locally). Now choose your terms: how often you'll check in, the funding, and an optional public bulletin.";
-    case "WORLD":
-      return "Terms set. Next, verify you're a unique human with World ID — this is the authority that lets you postpone later.";
-    case "SIGN":
-      return "Verified. Now sign the arm funding transfer on your Ledger — that's the device authority that arms the switch.";
-    case "ARMED":
-      return "Armed. Your switch is live; check in before each deadline to postpone, or it releases when you go silent.";
-    case "CHECKIN":
-      return "Checking in postpones the next release. Verify with World ID to advance one rung.";
-    case "CANCEL":
-      return "Cancelling requires a device-signed transfer; that's the only way to stand the switch down.";
-    default:
-      return "Ready.";
-  }
 }
 
 /** Best-effort LLM polish of the deterministic narration. NEVER drives a transition

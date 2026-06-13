@@ -7,10 +7,17 @@ import type { ChatState } from "@/lib/chat-machine.ts";
 
 export type Role = "system" | "user" | "assistant";
 
+export interface ChatLink {
+  label: string;
+  href: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: Role;
   text: string;
+  /** Optional action links rendered under the bubble (e.g. the post-arm return URL). */
+  links?: ChatLink[];
 }
 
 /** The fixed, ordered setup ladder the step indicator renders. */
