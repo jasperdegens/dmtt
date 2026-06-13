@@ -14,7 +14,6 @@ import { useState } from "react";
 import { cancelMemo } from "@/lib/types.ts";
 import type { SwitchView } from "@/lib/types.ts";
 import { usePirate } from "./scene/PirateContext.tsx";
-import { MIN_ACTION_MS } from "@/lib/pirate.ts";
 
 export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh?: () => void }) {
   const [open, setOpen] = useState(false);
@@ -63,7 +62,6 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
           if (onRefresh) onRefresh();
           else if (typeof window !== "undefined") window.location.reload();
         },
-        MIN_ACTION_MS,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

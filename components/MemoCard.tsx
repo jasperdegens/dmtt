@@ -15,7 +15,6 @@ import { useState } from "react";
 import { encrypt, hashCiphertext } from "@/lib/crypto.ts";
 import { FAST_PATH_MAX_BYTES, type Hex64 } from "@/lib/types.ts";
 import { usePirate } from "./scene/PirateContext.tsx";
-import { MIN_ACTION_MS } from "@/lib/pirate.ts";
 
 // Storage ceiling: HFS files cap at 1 MB and the HCS large path is scoped to ~1 MB
 // too (CLAUDE.md C2). Guard the plaintext just under that so the ciphertext + the
@@ -67,7 +66,7 @@ export function MemoCard({
       }
       // Local AES-256-GCM. K is returned then immediately dropped (the arm flow
       // mints the ladder from it before discarding); we keep only the ciphertext.
-      // The captain seals the chest for at least MIN_ACTION_MS while it happens.
+      // The captain seals the chest through the FULL encrypt clip while it happens.
       const captured = await runWhile(
         "encrypting",
         async () => {
@@ -77,7 +76,6 @@ export function MemoCard({
             ciphertext.length <= FAST_PATH_MAX_BYTES ? "hfs" : "hcs";
           return { ciphertextHash, ciphertext, key, storageKind } as MemoCaptured;
         },
-        MIN_ACTION_MS,
       );
       onCaptured(captured);
     } catch (e) {

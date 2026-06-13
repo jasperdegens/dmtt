@@ -22,6 +22,26 @@ export function SceneBackground() {
       <div className="moon" />
       <div className="clouds" />
 
+      {/* jagged lightning bolts in the sky, flashing on the same beats as the glow */}
+      {!reduced ? (
+        <svg
+          className="bolts"
+          viewBox="0 0 1000 600"
+          preserveAspectRatio="xMidYMin slice"
+          aria-hidden="true"
+        >
+          <path
+            className="bolt bolt--1"
+            d="M 175 -20 L 150 95 L 188 108 L 138 215 L 176 228 L 120 340 L 150 348 L 96 470"
+          />
+          <path
+            className="bolt bolt--2"
+            d="M 832 -20 L 866 86 L 824 100 L 884 205 L 838 220 L 900 330 L 862 340 L 912 452"
+          />
+          <path className="bolt bolt--3" d="M 520 -20 L 498 120 L 532 132 L 486 270 L 520 282 L 470 410" />
+        </svg>
+      ) : null}
+
       {/* back wave — behind the ship */}
       <WaveLayer variant="back" seek={0} />
 

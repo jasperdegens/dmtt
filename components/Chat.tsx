@@ -52,7 +52,6 @@ import {
   mintLadder,
   randomNonceHex,
 } from "@/lib/crypto.ts";
-import { MIN_ACTION_MS } from "@/lib/pirate.ts";
 import type {
   ArmArtifacts,
   ArmInput,
@@ -228,7 +227,7 @@ export function Chat() {
   // Advance the machine. /api/chat runs the SAME reduce() + supplies (optional, possibly
   // LLM-polished) narration; if it's unreachable we advance client-side and narrate
   // locally — so the flow never depends on the model OR the route. The captain shows
-  // "thinking" for at least MIN_ACTION_MS, then "talks" as the new line lands.
+  // "thinking" (at least one full loop), then "talks" (one loop) as the new line lands.
   const dispatch = useCallback(
     async (event: ChatEvent): Promise<ChatContext> => {
       const current = ctxRef.current;
@@ -260,9 +259,8 @@ export function Chat() {
               return n;
             }
           },
-          MIN_ACTION_MS,
         );
-        pulse("talking", 1500);
+        pulse("talking");
         return next;
       } finally {
         setBusy(false);
@@ -346,7 +344,7 @@ export function Chat() {
 
   // The full arm assembly, client-side: upload ciphertext, mint the ladder from K (then
   // drop K), POST a complete ArmInput + ArmArtifacts. K and plaintext never leave here.
-  // The captain shows "encrypting" (sealing the chest) for at least MIN_ACTION_MS.
+  // The captain shows "encrypting" (sealing the chest) through the full encrypt clip.
   async function arm() {
     if (!memo || !terms || !world || !signed || !policy) return;
     setArming(true);
@@ -397,7 +395,6 @@ export function Chat() {
           setTopicId(body.topicId);
           enterLive(body.topicId);
         },
-        MIN_ACTION_MS,
       );
     } catch (e) {
       pushAssistant(
@@ -498,12 +495,12 @@ export function Chat() {
   const step = setupStep(context.state);
 
   // The captain rests "waiting" while a setup card needs the user, and "idle" once the
-  // switch is live and just being watched. Transient actions (thinking / encrypting /
-  // decrypting / talking) override this while they run.
+  // switch is live and just being watched. The captain rests IDLE by default (the provider
+  // plays a periodic "waiting" glance); transient actions override this while they run.
   useEffect(() => {
     if (!booted) return;
-    setResting(live ? "idle" : "waiting");
-  }, [booted, live, setResting]);
+    setResting("idle");
+  }, [booted, setResting]);
 
   if (!booted) {
     return (

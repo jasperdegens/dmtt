@@ -42,10 +42,7 @@ export function AboutButton() {
     <>
       <button type="button" className="about-btn" onClick={() => setOpen(true)}>
         <span className="about-btn__icon">⚓</span>
-        <span className="about-btn__text">
-          <span className="about-btn__label">The Pact</span>
-          <span className="about-btn__title">About the project</span>
-        </span>
+        <span className="about-btn__title">About the project</span>
       </button>
 
       {open ? (

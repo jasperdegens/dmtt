@@ -17,7 +17,6 @@ import { useState } from "react";
 
 import { WorldVerifyCard, type WorldVerified } from "@/components/WorldVerifyCard.tsx";
 import { usePirate } from "@/components/scene/PirateContext.tsx";
-import { MIN_ACTION_MS } from "@/lib/pirate.ts";
 import { buildCheckinRequest, isExhausted } from "@/lib/checkin-client.ts";
 import type {
   CheckinInput,
@@ -123,7 +122,7 @@ export function CheckinCard({
       input,
       artifacts,
     };
-    // The captain ponders the postponement for at least MIN_ACTION_MS so the beat reads.
+    // The captain ponders the postponement (at least one full thinking loop) so it reads.
     await runWhile(
       "thinking",
       async () => {
@@ -160,7 +159,6 @@ export function CheckinCard({
           });
         }
       },
-      MIN_ACTION_MS,
     );
   }
 

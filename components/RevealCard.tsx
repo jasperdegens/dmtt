@@ -10,7 +10,6 @@ import { useState } from "react";
 import { revealMemo, revealDefaults } from "@/lib/reveal.ts";
 import type { SwitchView, CapsulePublishedEvent } from "@/lib/types.ts";
 import { usePirate } from "./scene/PirateContext.tsx";
-import { MIN_ACTION_MS } from "@/lib/pirate.ts";
 
 /** The published capsule from the (one) CAPSULE_PUBLISHED event, or null pre-release. */
 function publishedCapsule(view: SwitchView): string | null {
@@ -52,12 +51,11 @@ export function RevealCard({ view }: { view: SwitchView }) {
     setText(null);
     setDownloadUrl(null);
     try {
-      // The captain hauls open the chest for at least MIN_ACTION_MS while the capsule
-      // is tlock-opened + AES-decrypted — entirely in the browser.
+      // The captain hauls the chest open for the full decrypt clip while the capsule is
+      // tlock-opened + AES-decrypted — entirely in the browser.
       const plaintext = await runWhile(
         "decrypting",
         () => revealMemo(revealDefaults(), capsuleB64, view.storage),
-        MIN_ACTION_MS,
       );
       if (looksTextual(plaintext)) {
         setText(new TextDecoder().decode(plaintext));
