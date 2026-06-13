@@ -62,15 +62,15 @@ export function TermsChips({
   }, [suggestion]);
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
-      <h2 className="text-lg font-semibold">Release terms</h2>
-      <p className="mt-1 text-xs text-neutral-400">
+    <div className="panel p-5">
+      <h2 className="panel-title">Release terms</h2>
+      <p className="panel-note mt-1 text-xs">
         Check in once per interval to postpone. Go silent for one full interval and the
         network releases your memo.
       </p>
 
       <div className="mt-4">
-        <label className="text-xs font-medium text-neutral-400">Check-in cadence</label>
+        <label className="muted text-xs font-medium">Check-in cadence</label>
         <div className="mt-2 grid grid-cols-[minmax(5rem,8rem)_1fr] gap-2">
           <input
             type="number"
@@ -78,15 +78,15 @@ export function TermsChips({
             step={1}
             value={intervalCount}
             onChange={(e) => setIntervalCount(Math.max(1, Number(e.target.value) || 1))}
-            className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-100 outline-none focus:border-neutral-600"
+            className="field"
           />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {INTERVAL_UNITS.map((u) => (
               <button
                 key={u.unit}
                 type="button"
                 onClick={() => setIntervalUnit(u.unit)}
-                className={`rounded-full px-3 py-1.5 text-sm ${intervalUnit === u.unit ? "bg-emerald-600 text-white" : "bg-neutral-800 text-neutral-300"}`}
+                className={intervalUnit === u.unit ? "tab tab--active" : "tab"}
               >
                 {u.label}
               </button>
@@ -97,20 +97,18 @@ export function TermsChips({
 
       <div className="mt-4 grid grid-cols-2 gap-4">
         <div>
-          <label className="text-xs font-medium text-neutral-400">
-            Ladder length (N)
-          </label>
+          <label className="muted text-xs font-medium">Ladder length (N)</label>
           <input
             type="number"
             min={1}
             max={20}
             value={n}
             onChange={(e) => setN(Math.max(1, Number(e.target.value) || 1))}
-            className="mt-1 w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-100 outline-none focus:border-neutral-600"
+            className="field mt-1"
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-neutral-400">Funding (ℏ)</label>
+          <label className="muted text-xs font-medium">Funding (ℏ)</label>
           <input
             type="number"
             min={MIN_FUNDING_HBAR}
@@ -121,30 +119,28 @@ export function TermsChips({
                 Math.max(MIN_FUNDING_HBAR, Number(e.target.value) || MIN_FUNDING_HBAR),
               )
             }
-            className="mt-1 w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-100 outline-none focus:border-neutral-600"
+            className="field mt-1"
           />
         </div>
       </div>
 
       <div className="mt-4">
-        <label className="text-xs font-medium text-neutral-400">
-          Public bulletin (posted at release)
-        </label>
+        <label className="muted text-xs font-medium">Public bulletin (posted at release)</label>
         <textarea
           value={bulletin}
           onChange={(e) => setBulletin(e.target.value)}
           rows={2}
           placeholder="A. has gone silent. The enclosed memo is now public…"
-          className="mt-1 w-full resize-y rounded-md border border-neutral-800 bg-neutral-900 p-2 text-sm text-neutral-100 outline-none focus:border-neutral-600"
+          className="field mt-1 resize-y"
         />
       </div>
 
       <button
         type="button"
         onClick={() => onTerms({ intervalSec, n, fundingHbar, bulletin })}
-        className="mt-4 w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
+        className="btn btn--gold mt-4 w-full"
       >
-        Set terms & continue
+        Set terms &amp; continue
       </button>
     </div>
   );

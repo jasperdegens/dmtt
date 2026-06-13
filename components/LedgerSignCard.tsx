@@ -48,26 +48,21 @@ export function LedgerSignCard({
   }
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
-      <h2 className="text-lg font-semibold">Arm with your Ledger</h2>
-      <p className="mt-1 text-xs text-neutral-400">
+    <div className="panel p-5">
+      <h2 className="panel-title">Arm with your Ledger</h2>
+      <p className="panel-note mt-1 text-xs">
         Your device signs a {fundingHbar} ℏ funding transfer to the agent. The memo shown
         on the Trusted Display will read:
       </p>
-      <p className="mt-2 break-all rounded-md bg-neutral-900 p-2 font-mono text-xs text-neutral-300">
+      <p className="mono mt-2 break-all rounded-md border border-[color:var(--panel-border)] bg-black/30 p-2 text-xs text-[color:var(--gold-bright)]">
         DMTT:ARM:{policyHash}
       </p>
 
-      <button
-        type="button"
-        disabled={busy}
-        onClick={sign}
-        className="mt-4 w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-      >
+      <button type="button" disabled={busy} onClick={sign} className="btn btn--gold mt-4 w-full">
         {busy ? "Waiting for device…" : "Sign on device (stub)"}
       </button>
 
-      <p className="mt-3 text-[11px] text-amber-400">
+      <p className="mt-3 text-[11px] text-[color:var(--gold-bright)]">
         Stub — real WebHID device signing arrives in Phase 5. This emits a mock arm
         artifact so the flow is walkable end-to-end.
       </p>

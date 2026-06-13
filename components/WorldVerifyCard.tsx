@@ -109,14 +109,14 @@ export function WorldVerifyCard({
   }
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
-      <h2 className="text-lg font-semibold">Prove you&apos;re human</h2>
-      <p className="mt-1 text-xs text-neutral-400">
+    <div className="panel p-5">
+      <h2 className="panel-title">Prove you&apos;re human</h2>
+      <p className="panel-note mt-1 text-xs">
         World ID binds this switch to one verified person. The nullifier can&apos;t be
         scripted or delegated — that&apos;s the point.
       </p>
 
-      {error ? <p className="mt-3 text-xs text-red-400">{error}</p> : null}
+      {error ? <p className="mt-3 text-xs text-[color:var(--red)]">{error}</p> : null}
 
       {configured ? (
         <>
@@ -124,7 +124,7 @@ export function WorldVerifyCard({
             type="button"
             disabled={busy}
             onClick={startVerify}
-            className="mt-4 w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="btn btn--gold mt-4 w-full"
           >
             {busy ? "Verifying…" : "Verify with World ID"}
           </button>
@@ -145,11 +145,7 @@ export function WorldVerifyCard({
           ) : null}
         </>
       ) : (
-        <button
-          type="button"
-          onClick={simulate}
-          className="mt-4 w-full rounded-md border border-amber-700 bg-amber-950 px-4 py-2 text-sm font-medium text-amber-300"
-        >
+        <button type="button" onClick={simulate} className="btn btn--ghost mt-4 w-full">
           Simulate World ID (dev — not configured)
         </button>
       )}

@@ -9,6 +9,8 @@
 import { useState } from "react";
 import { revealMemo, revealDefaults } from "@/lib/reveal.ts";
 import type { SwitchView, CapsulePublishedEvent } from "@/lib/types.ts";
+import { usePirate } from "./scene/PirateContext.tsx";
+import { MIN_ACTION_MS } from "@/lib/pirate.ts";
 
 /** The published capsule from the (one) CAPSULE_PUBLISHED event, or null pre-release. */
 function publishedCapsule(view: SwitchView): string | null {
@@ -33,6 +35,7 @@ export function RevealCard({ view }: { view: SwitchView }) {
   const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const { runWhile } = usePirate();
 
   const capsuleB64 = publishedCapsule(view);
   const released = view.status === "RELEASED" && capsuleB64 !== null;
@@ -49,7 +52,13 @@ export function RevealCard({ view }: { view: SwitchView }) {
     setText(null);
     setDownloadUrl(null);
     try {
-      const plaintext = await revealMemo(revealDefaults(), capsuleB64, view.storage);
+      // The captain hauls open the chest for at least MIN_ACTION_MS while the capsule
+      // is tlock-opened + AES-decrypted — entirely in the browser.
+      const plaintext = await runWhile(
+        "decrypting",
+        () => revealMemo(revealDefaults(), capsuleB64, view.storage),
+        MIN_ACTION_MS,
+      );
       if (looksTextual(plaintext)) {
         setText(new TextDecoder().decode(plaintext));
       } else {
@@ -66,47 +75,42 @@ export function RevealCard({ view }: { view: SwitchView }) {
   }
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
-      <h2 className="text-lg font-semibold">The memo</h2>
+    <div className={`panel p-5 ${released ? "panel--released" : ""}`}>
+      <h2 className="panel-title">The memo</h2>
 
       {cancelled ? (
-        <p className="mt-2 text-sm text-neutral-400">
+        <p className="panel-note mt-2 text-sm">
           Cancelled. The owner stood the switch down — its rungs were shredded and this
           memo will never be released. Nothing to reveal.
         </p>
       ) : awaitingCapsule ? (
-        <p className="mt-2 text-sm text-amber-300">
+        <p className="mt-2 text-sm text-[color:var(--gold-bright)]">
           Released — awaiting the capsule. Release has been authorized; the watcher is
           publishing the decryptable capsule now. Refresh in a moment to reveal the memo.
         </p>
       ) : !released ? (
-        <p className="mt-2 text-sm text-neutral-400">
+        <p className="panel-note mt-2 text-sm">
           Sealed. This memo becomes decryptable only after the switch is released —
           when its drand round passes and the watcher publishes the capsule. Check back
           if the owner goes silent.
         </p>
       ) : (
         <>
-          <p className="mt-1 text-xs text-emerald-400">
+          <p className="mt-1 text-xs text-[color:var(--gold-bright)]">
             Released. Decryption happens in your browser — the plaintext never touches a
             server.
           </p>
 
           {text === null && downloadUrl === null ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={reveal}
-              className="mt-4 w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {busy ? "Decrypting…" : "Reveal the memo"}
+            <button type="button" disabled={busy} onClick={reveal} className="btn btn--gold mt-4 w-full">
+              {busy ? "Hauling open the chest…" : "⚱ Reveal the memo"}
             </button>
           ) : null}
 
-          {error ? <p className="mt-3 text-xs text-red-400">{error}</p> : null}
+          {error ? <p className="mt-3 text-xs text-[color:var(--red)]">{error}</p> : null}
 
           {text !== null ? (
-            <pre className="mt-4 whitespace-pre-wrap break-words rounded-md border border-neutral-800 bg-neutral-900 p-3 text-sm text-neutral-100">
+            <pre className="thin-scroll mt-4 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md border border-[color:var(--panel-border)] bg-black/30 p-3 text-sm text-[color:var(--cream)]">
               {text}
             </pre>
           ) : null}
@@ -115,7 +119,7 @@ export function RevealCard({ view }: { view: SwitchView }) {
             <a
               href={downloadUrl}
               download={`dmtt-${view.topicId}.bin`}
-              className="mt-4 inline-block rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
+              className="btn btn--gold mt-4 inline-block"
             >
               Download decrypted file
             </a>

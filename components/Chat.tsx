@@ -1,6 +1,7 @@
 "use client";
 
-// components/Chat.tsx — the chat-flow shell (WS-E, Phase 7).
+// components/Chat.tsx — the chat-flow shell (WS-E, Phase 7) reframed as the captain's
+// speech bubble (Phase 8).
 //
 // The whole DMTT lifecycle lives in ONE chat interface: it asks one thing at a time in
 // bubbles and accepts either the structured step card OR free text (deterministic — no
@@ -8,7 +9,7 @@
 // SIGN → ARM, then the live switch (check-in / cancel / reveal). The cards render INLINE
 // as chat answers; nothing here is a modal wizard.
 //
-// Three hard invariants are enforced here:
+// Three hard invariants are enforced here (UNCHANGED by the visual overhaul):
 //   1. PLAINTEXT and the key K NEVER leave the browser. The MemoCard encrypts locally;
 //      this component holds the captured { ciphertext, key } in React memory and posts
 //      ONLY the ciphertext bytes (to /api/storage) and metadata (ciphertextHash) — never
@@ -18,9 +19,10 @@
 //   3. The machine advances client-side via reduce() and stays correct with the LLM (or
 //      the whole /api/chat route) offline; /api/chat only supplies optional narration.
 //
-// SPA continuity (Phase 7): once armed it stays in-place, posts the return URL, watches
-// the topic, and counts down. Opening `/?t=<topicId>` restores the SAME interface with
-// the switch loaded, the watcher polling, and the countdown running.
+// Phase 8 additions: the captain (PirateContext) reacts to the flow — thinking while a
+// step advances, encrypting while the arm payload is built, talking as a line lands,
+// waiting between steps — and every scripted step shows for at least MIN_ACTION_MS so
+// the animation reads. None of this gates the machine; it's pure presentation.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -36,6 +38,7 @@ import { MessageList } from "./chat/MessageList.tsx";
 import { StepIndicator } from "./chat/StepIndicator.tsx";
 import { ChatInput } from "./chat/ChatInput.tsx";
 import type { ChatLink, ChatMessage } from "./chat/types.ts";
+import { usePirate } from "./scene/PirateContext.tsx";
 
 import {
   narrate,
@@ -49,6 +52,7 @@ import {
   mintLadder,
   randomNonceHex,
 } from "@/lib/crypto.ts";
+import { MIN_ACTION_MS } from "@/lib/pirate.ts";
 import type {
   ArmArtifacts,
   ArmInput,
@@ -68,7 +72,7 @@ const WORLD_ENV: WorldEnvironment =
 const POLL_MS = 10_000;
 
 const INTRO =
-  "Let's set up your dead man's switch — I'll ask one thing at a time. First, the memo: write it (or drop a file) in the card below. It's encrypted in your browser before anything leaves your device — the plaintext never reaches this chat or our servers.";
+  "Arr — let's forge your dead man's pact. I'll ask one thing at a time. First, your memo: pen it (or drop a file) in the card below. It's encrypted in your browser before aught leaves your device — the plaintext never reaches this chat nor my servers.";
 
 let msgSeq = 0;
 function nextId(): string {
@@ -116,9 +120,9 @@ function restoreSummary(v: SwitchView): string {
 }
 
 const STATUS_BADGE: Record<SwitchView["status"], string> = {
-  ACTIVE: "bg-emerald-900 text-emerald-300",
-  RELEASED: "bg-amber-900 text-amber-300",
-  CANCELLED: "bg-neutral-800 text-neutral-400",
+  ACTIVE: "badge badge--active",
+  RELEASED: "badge badge--released",
+  CANCELLED: "badge badge--cancelled",
 };
 
 export function Chat() {
@@ -127,6 +131,9 @@ export function Chat() {
   const [busy, setBusy] = useState(false);
   // Defer the first render until the mount effect decides setup-vs-restore (no flash).
   const [booted, setBooted] = useState(false);
+
+  // The captain's reactions. Stable methods only (so memoized handlers don't churn).
+  const { setResting, runWhile, pulse } = usePirate();
 
   // Local secret artifacts — browser-memory ONLY. `memo.key` (K) and `memo.ciphertext`
   // never leave here except the ciphertext bytes uploaded to /api/storage at arm.
@@ -152,6 +159,12 @@ export function Chat() {
     ctxRef.current = context;
   }, [context]);
 
+  // The scroll log — keep it pinned to the newest message / active card.
+  const logRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [messages, context.state, busy, view?.status]);
+
   const pushAssistant = useCallback((text: string, links?: ChatLink[]) => {
     setMessages((prev) => [...prev, { id: nextId(), role: "assistant", text, links }]);
   }, []);
@@ -161,37 +174,48 @@ export function Chat() {
 
   // Advance the machine. /api/chat runs the SAME reduce() + supplies (optional, possibly
   // LLM-polished) narration; if it's unreachable we advance client-side and narrate
-  // locally — so the flow never depends on the model OR the route.
+  // locally — so the flow never depends on the model OR the route. The captain shows
+  // "thinking" for at least MIN_ACTION_MS, then "talks" as the new line lands.
   const dispatch = useCallback(
     async (event: ChatEvent): Promise<ChatContext> => {
       const current = ctxRef.current;
       setBusy(true);
       try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ context: current, event }),
-        });
-        const data = (await res.json()) as {
-          context?: ChatContext;
-          narration?: string;
-        };
-        const next = data.context ?? reduce(current, event);
-        ctxRef.current = next;
-        setContext(next);
-        pushAssistant(data.narration ?? narrate(next));
-        return next;
-      } catch {
-        const next = reduce(current, event);
-        ctxRef.current = next;
-        setContext(next);
-        pushAssistant(narrate(next));
+        const next = await runWhile(
+          "thinking",
+          async () => {
+            try {
+              const res = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ context: current, event }),
+              });
+              const data = (await res.json()) as {
+                context?: ChatContext;
+                narration?: string;
+              };
+              const n = data.context ?? reduce(current, event);
+              ctxRef.current = n;
+              setContext(n);
+              pushAssistant(data.narration ?? narrate(n));
+              return n;
+            } catch {
+              const n = reduce(current, event);
+              ctxRef.current = n;
+              setContext(n);
+              pushAssistant(narrate(n));
+              return n;
+            }
+          },
+          MIN_ACTION_MS,
+        );
+        pulse("talking", 1500);
         return next;
       } finally {
         setBusy(false);
       }
     },
-    [pushAssistant],
+    [pushAssistant, runWhile, pulse],
   );
 
   // ── Step-card capture handlers — each records the (local) artifact, echoes a
@@ -276,52 +300,59 @@ export function Chat() {
 
   // The full arm assembly, client-side: upload ciphertext, mint the ladder from K (then
   // drop K), POST a complete ArmInput + ArmArtifacts. K and plaintext never leave here.
+  // The captain shows "encrypting" (sealing the chest) for at least MIN_ACTION_MS.
   async function arm() {
     if (!memo || !terms || !world || !signed || !policy) return;
     setArming(true);
     try {
-      const up = await fetch("/api/storage", {
-        method: "POST",
-        headers: { "content-type": "application/octet-stream" },
-        body: memo.ciphertext as BodyInit,
-      });
-      if (!up.ok) throw new Error(`storage failed (${up.status})`);
-      const storage = (await up.json()) as StorageRef;
+      await runWhile(
+        "encrypting",
+        async () => {
+          const up = await fetch("/api/storage", {
+            method: "POST",
+            headers: { "content-type": "application/octet-stream" },
+            body: memo.ciphertext as BodyInit,
+          });
+          if (!up.ok) throw new Error(`storage failed (${up.status})`);
+          const storage = (await up.json()) as StorageRef;
 
-      const armTime = Date.now();
-      const ladder = await mintLadder(memo.key, armTime, terms);
+          const armTime = Date.now();
+          const ladder = await mintLadder(memo.key, armTime, terms);
 
-      const input: ArmInput = { policy, policyHash: policyHashHex, storage, ladder, armTime };
-      const artifacts: ArmArtifacts = {
-        armTxId: signed.armTxId,
-        ledgerAccountId: signed.ledgerAccountId,
-        fundingHbar: terms.fundingHbar,
-      };
-      const res = await fetch("/api/arm", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ input, artifacts }),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => null)) as { error?: unknown } | null;
-        throw new Error(
-          `arm failed (${res.status})${err ? `: ${JSON.stringify(err.error)}` : ""}`,
-        );
-      }
-      const body = (await res.json()) as { topicId: string };
+          const input: ArmInput = { policy, policyHash: policyHashHex, storage, ladder, armTime };
+          const artifacts: ArmArtifacts = {
+            armTxId: signed.armTxId,
+            ledgerAccountId: signed.ledgerAccountId,
+            fundingHbar: terms.fundingHbar,
+          };
+          const res = await fetch("/api/arm", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ input, artifacts }),
+          });
+          if (!res.ok) {
+            const err = (await res.json().catch(() => null)) as { error?: unknown } | null;
+            throw new Error(
+              `arm failed (${res.status})${err ? `: ${JSON.stringify(err.error)}` : ""}`,
+            );
+          }
+          const body = (await res.json()) as { topicId: string };
 
-      // Armed. Stay in-place: flip the machine to ARMED, watch the topic, count down.
-      const armed: ChatContext = {
-        ...ctxRef.current,
-        state: "ARMED",
-        topicId: body.topicId,
-        suggestion: undefined,
-        error: undefined,
-      };
-      ctxRef.current = armed;
-      setContext(armed);
-      setTopicId(body.topicId);
-      enterLive(body.topicId);
+          // Armed. Stay in-place: flip the machine to ARMED, watch the topic, count down.
+          const armed: ChatContext = {
+            ...ctxRef.current,
+            state: "ARMED",
+            topicId: body.topicId,
+            suggestion: undefined,
+            error: undefined,
+          };
+          ctxRef.current = armed;
+          setContext(armed);
+          setTopicId(body.topicId);
+          enterLive(body.topicId);
+        },
+        MIN_ACTION_MS,
+      );
     } catch (e) {
       pushAssistant(
         `I couldn't arm the switch: ${e instanceof Error ? e.message : String(e)}. Nothing was armed — fix it and try again.`,
@@ -420,6 +451,14 @@ export function Chat() {
   const live = context.state === "ARMED";
   const step = setupStep(context.state);
 
+  // The captain rests "waiting" while a setup card needs the user, and "idle" once the
+  // switch is live and just being watched. Transient actions (thinking / encrypting /
+  // decrypting / talking) override this while they run.
+  useEffect(() => {
+    if (!booted) return;
+    setResting(live ? "idle" : "waiting");
+  }, [booted, live, setResting]);
+
   // Invariant #1: the memo step disables the text box (plaintext must not transit chat).
   const inputDisabled = live || step === "MEMO" || busy;
   const disabledReason = live
@@ -427,43 +466,48 @@ export function Chat() {
     : step === "MEMO"
       ? "The memo is encrypted in your browser — write it in the card above; it never goes through chat."
       : busy
-        ? "Working…"
+        ? "The Cap'n is working…"
         : undefined;
 
   if (!booted) {
-    return <div className="text-sm text-neutral-500">Loading…</div>;
+    return (
+      <div className="bubble">
+        <div className="bubble__log">
+          <div className="msg msg--note">Hoisting the colours…</div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="flex h-full min-h-[28rem] flex-col gap-4">
-      <header className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-neutral-200">
-          {live ? "Your switch" : "Set up your switch"}
-        </h2>
-        {live ? (
-          view ? (
-            <span
-              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE[view.status]}`}
-            >
-              {view.status}
-            </span>
+    <div className="bubble">
+      <div className="bubble__head">
+        <img className="bubble__avatar" src="/posters/idle.png" alt="" />
+        <div className="bubble__id">
+          <div className="bubble__name">Cap&apos;n Mordecai Graves</div>
+          <div className="bubble__role">
+            {live ? "Keeping watch over yer pact" : "Keeper of the Deadman's Pact"}
+          </div>
+        </div>
+        <div className="bubble__head-aside">
+          {live ? (
+            view ? (
+              <span className={STATUS_BADGE[view.status]}>{view.status}</span>
+            ) : (
+              <span className="badge badge--loading">loading</span>
+            )
           ) : (
-            <span className="rounded-full bg-neutral-800 px-2.5 py-0.5 text-xs font-medium text-neutral-400">
-              LOADING
-            </span>
-          )
-        ) : (
-          <StepIndicator state={context.state} />
-        )}
-      </header>
-
-      <div className="flex-1 overflow-y-auto">
-        <MessageList messages={messages} />
+            <StepIndicator state={context.state} />
+          )}
+        </div>
       </div>
 
-      {/* The active step / live card renders INLINE here — the one place an artifact is
-          captured and the one place the live switch is acted on. */}
-      <div className="space-y-3">{renderActiveCard()}</div>
+      <div className="bubble__log thin-scroll" ref={logRef}>
+        <MessageList messages={messages} />
+        {/* The active step / live card renders INLINE at the bottom of the scroll — the
+            one place an artifact is captured and the one place the live switch is acted on. */}
+        <div className="bubble__cards">{renderActiveCard()}</div>
+      </div>
 
       <ChatInput disabled={inputDisabled} disabledReason={disabledReason} onSend={onSend} />
     </div>
@@ -473,9 +517,9 @@ export function Chat() {
     if (live) {
       if (!topicId) {
         return (
-          <div className="rounded-xl border border-emerald-900 bg-neutral-950 p-5">
-            <h3 className="text-lg font-semibold text-emerald-300">Armed.</h3>
-            <p className="mt-2 text-sm text-neutral-400">Your switch is live.</p>
+          <div className="panel panel--ok p-5">
+            <h3 className="panel-title">Armed.</h3>
+            <p className="panel-note mt-2 text-sm">Your switch is live.</p>
           </div>
         );
       }
@@ -519,9 +563,9 @@ export function Chat() {
                 type="button"
                 disabled={arming}
                 onClick={arm}
-                className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                className="btn btn--gold w-full"
               >
-                {arming ? "Arming…" : "Arm the switch"}
+                {arming ? "Sealing the chest…" : "⚓ Arm the switch"}
               </button>
             ) : null}
           </>

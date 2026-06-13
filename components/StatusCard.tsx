@@ -35,9 +35,9 @@ export function countdown(deadlineMs: number, nowMs: number): string {
 }
 
 const STATUS_STYLE: Record<SwitchView["status"], string> = {
-  ACTIVE: "bg-emerald-900 text-emerald-300",
-  RELEASED: "bg-amber-900 text-amber-300",
-  CANCELLED: "bg-neutral-800 text-neutral-400",
+  ACTIVE: "badge badge--active",
+  RELEASED: "badge badge--released",
+  CANCELLED: "badge badge--cancelled",
 };
 
 export function StatusCard({
@@ -102,55 +102,47 @@ export function StatusCard({
   const showLoading = controlled ? view === null : loading && !view;
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Switch status</h2>
-        {view ? (
-          <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLE[view.status]}`}
-          >
-            {view.status}
-          </span>
-        ) : null}
+    <div className="panel p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="panel-title">Switch status</h2>
+        {view ? <span className={STATUS_STYLE[view.status]}>{view.status}</span> : null}
       </div>
 
-      <p className="mt-1 break-all font-mono text-xs text-neutral-500">{topicId}</p>
+      <p className="mono muted mt-1 break-all text-xs">{topicId}</p>
 
-      {showLoading ? (
-        <p className="mt-4 text-sm text-neutral-400">Loading…</p>
-      ) : null}
+      {showLoading ? <p className="panel-note mt-4 text-sm">Loading…</p> : null}
 
-      {error ? <p className="mt-4 text-sm text-red-400">{error}</p> : null}
+      {error ? <p className="mt-4 text-sm text-[color:var(--red)]">{error}</p> : null}
 
       {view ? (
         <div className="mt-4 space-y-3 text-sm">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <div className="text-xs text-neutral-500">Live rung</div>
-              <div className="font-mono">
+              <div className="muted text-xs">Live rung</div>
+              <div className="mono">
                 {view.liveIdx} / {view.rungHashes.length || view.terms.n}
               </div>
             </div>
             <div>
-              <div className="text-xs text-neutral-500">Check-ins (seq)</div>
-              <div className="font-mono">{view.seq}</div>
+              <div className="muted text-xs">Check-ins (seq)</div>
+              <div className="mono">{view.seq}</div>
             </div>
           </div>
 
           <div>
-            <div className="text-xs text-neutral-500">Next deadline</div>
-            <div className="font-mono">
+            <div className="muted text-xs">Next deadline</div>
+            <div className="mono">
               {view.currentDeadline === null
                 ? "—"
                 : `${countdown(view.currentDeadline, now)} · ${new Date(view.currentDeadline).toUTCString()}`}
             </div>
           </div>
 
-          <div className="border-t border-neutral-800 pt-3">
-            <div className="text-xs text-neutral-500">Audit trail</div>
-            <ul className="mt-1 space-y-0.5 font-mono text-xs text-neutral-400">
+          <div className="border-t border-[color:var(--panel-border)] pt-3">
+            <div className="muted text-xs">Audit trail</div>
+            <ul className="mono muted mt-1 space-y-0.5 text-xs">
               {view.events.length === 0 ? (
-                <li className="text-neutral-600">no events yet</li>
+                <li className="opacity-60">no events yet</li>
               ) : (
                 view.events.map((e, i) => <li key={i}>· {e.type}</li>)
               )}
@@ -161,7 +153,7 @@ export function StatusCard({
             href={hashscanTopic(view.topicId)}
             target="_blank"
             rel="noreferrer"
-            className="inline-block text-xs text-emerald-400 underline"
+            className="gold-link inline-block text-xs"
           >
             View topic on HashScan ↗
           </a>

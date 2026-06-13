@@ -1,6 +1,7 @@
 "use client";
 
-// components/chat/ChatInput.tsx — the free-text box (WS-E).
+// components/chat/ChatInput.tsx — the free-text box (WS-E), styled as the bubble's
+// "speak yer mind" bar.
 //
 // HARD INVARIANT (CLAUDE.md): plaintext must NOT transit chat. The input is DISABLED
 // while the MEMO step is active (the MemoCard owns the secret and encrypts it locally);
@@ -28,13 +29,9 @@ export function ChatInput({
   }
 
   return (
-    <div className="border-t border-neutral-800 pt-3">
-      {disabled ? (
-        <p className="mb-2 text-xs text-amber-400">
-          {disabledReason ?? "Chat is paused for this step."}
-        </p>
-      ) : null}
-      <div className="flex gap-2">
+    <div className="bubble__form">
+      {disabled && disabledReason ? <p className="bubble__foot">{disabledReason}</p> : null}
+      <div className="bubble__form-row">
         <input
           type="text"
           value={text}
@@ -44,15 +41,10 @@ export function ChatInput({
             if (e.key === "Enter") submit();
           }}
           placeholder={disabled ? "Paused — use the card above" : 'e.g. "2 minutes", "0.1 hbar"…'}
-          className="flex-1 rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-neutral-600 disabled:opacity-50"
+          className="field disabled:opacity-50"
         />
-        <button
-          type="button"
-          onClick={submit}
-          disabled={disabled}
-          className="rounded-md bg-neutral-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          Send
+        <button type="button" onClick={submit} disabled={disabled} className="btn btn--gold">
+          Hail
         </button>
       </div>
     </div>

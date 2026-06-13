@@ -7,10 +7,15 @@
 // ever uploaded (by the arm flow), and only its hash is committed on-chain. This card
 // encrypts via @/lib/crypto.ts and hands the caller { ciphertextHash, ciphertext,
 // storageKind } — K is discarded by encrypt() after the ladder is minted elsewhere.
+//
+// Phase 8: encryption drives the captain's "encrypting" beat (he seals your secret in
+// the chest) for at least MIN_ACTION_MS so it reads.
 
 import { useState } from "react";
 import { encrypt, hashCiphertext } from "@/lib/crypto.ts";
 import { FAST_PATH_MAX_BYTES, type Hex64 } from "@/lib/types.ts";
+import { usePirate } from "./scene/PirateContext.tsx";
+import { MIN_ACTION_MS } from "@/lib/pirate.ts";
 
 // Storage ceiling: HFS files cap at 1 MB and the HCS large path is scoped to ~1 MB
 // too (CLAUDE.md C2). Guard the plaintext just under that so the ciphertext + the
@@ -38,6 +43,7 @@ export function MemoCard({
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { runWhile } = usePirate();
 
   async function capture() {
     setError(null);
@@ -61,11 +67,19 @@ export function MemoCard({
       }
       // Local AES-256-GCM. K is returned then immediately dropped (the arm flow
       // mints the ladder from it before discarding); we keep only the ciphertext.
-      const { ciphertext, key } = await encrypt(plaintext);
-      const ciphertextHash = hashCiphertext(ciphertext);
-      const storageKind: "hfs" | "hcs" =
-        ciphertext.length <= FAST_PATH_MAX_BYTES ? "hfs" : "hcs";
-      onCaptured({ ciphertextHash, ciphertext, key, storageKind });
+      // The captain seals the chest for at least MIN_ACTION_MS while it happens.
+      const captured = await runWhile(
+        "encrypting",
+        async () => {
+          const { ciphertext, key } = await encrypt(plaintext);
+          const ciphertextHash = hashCiphertext(ciphertext);
+          const storageKind: "hfs" | "hcs" =
+            ciphertext.length <= FAST_PATH_MAX_BYTES ? "hfs" : "hcs";
+          return { ciphertextHash, ciphertext, key, storageKind } as MemoCaptured;
+        },
+        MIN_ACTION_MS,
+      );
+      onCaptured(captured);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -74,25 +88,17 @@ export function MemoCard({
   }
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
-      <h2 className="text-lg font-semibold">The memo</h2>
-      <p className="mt-1 text-xs text-emerald-400">
+    <div className="panel p-5">
+      <h2 className="panel-title">The memo</h2>
+      <p className="mt-1 text-xs text-[color:var(--gold-bright)]">
         🔒 Encrypted in your browser. The plaintext never touches our servers.
       </p>
 
-      <div className="mt-4 flex gap-2 text-sm">
-        <button
-          type="button"
-          onClick={() => setTab("note")}
-          className={`rounded-md px-3 py-1.5 ${tab === "note" ? "bg-neutral-200 text-neutral-900" : "bg-neutral-800 text-neutral-300"}`}
-        >
+      <div className="mt-4 flex gap-2">
+        <button type="button" onClick={() => setTab("note")} className={tab === "note" ? "tab tab--active" : "tab"}>
           Write a note
         </button>
-        <button
-          type="button"
-          onClick={() => setTab("file")}
-          className={`rounded-md px-3 py-1.5 ${tab === "file" ? "bg-neutral-200 text-neutral-900" : "bg-neutral-800 text-neutral-300"}`}
-        >
+        <button type="button" onClick={() => setTab("file")} className={tab === "file" ? "tab tab--active" : "tab"}>
           Drop a file
         </button>
       </div>
@@ -103,27 +109,22 @@ export function MemoCard({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="If you are reading this, I have gone quiet…"
-            rows={6}
-            className="w-full resize-y rounded-md border border-neutral-800 bg-neutral-900 p-3 text-sm text-neutral-100 outline-none focus:border-neutral-600"
+            rows={5}
+            className="field resize-y"
           />
         ) : (
           <input
             type="file"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-sm text-neutral-300 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-800 file:px-3 file:py-1.5 file:text-neutral-100"
+            className="field file:mr-3 file:rounded-md file:border-0 file:bg-[color:var(--gold-deep)] file:px-3 file:py-1.5 file:text-[#2a1810]"
           />
         )}
       </div>
 
-      {error ? <p className="mt-3 text-xs text-red-400">{error}</p> : null}
+      {error ? <p className="mt-3 text-xs text-[color:var(--red)]">{error}</p> : null}
 
-      <button
-        type="button"
-        disabled={busy}
-        onClick={capture}
-        className="mt-4 w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-      >
-        {busy ? "Encrypting…" : "Encrypt locally & continue"}
+      <button type="button" disabled={busy} onClick={capture} className="btn btn--gold mt-4 w-full">
+        {busy ? "Sealing the chest…" : "Encrypt locally & continue"}
       </button>
     </div>
   );
