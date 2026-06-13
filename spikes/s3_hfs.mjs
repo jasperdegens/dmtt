@@ -31,13 +31,18 @@ async function main() {
   ))) return fail("fast-path FileAppend should have been rejected (immutable)");
   pass("fast-path FileAppend rejected (immutable)");
 
-  // ── Large path: create(agent key) → append 100 KB → seal (FileUpdate empty KeyList) ──
-  const data = crypto.randomBytes(100 * 1024);
-  const head = data.subarray(0, 2000);
-  const rest = data.subarray(2000);
+  // ── Large path: create(agent key) → append (multi-chunk) → seal (FileUpdate empty KeyList) ──
+  // HFS append is EXPENSIVE: ~4.4 ℏ per 4 KB chunk at default ~90-day expiration (S3 fee
+  // finding). Default to a frugal 2-chunk payload that proves the mechanism; set
+  // S3_PAYLOAD_BYTES=102400 for the 100 KB stress (~100 ℏ) — that's the Phase 6 test.
+  const PAYLOAD = Number(process.env.S3_PAYLOAD_BYTES || 8192);
+  const data = crypto.randomBytes(PAYLOAD);
+  const head = data.subarray(0, Math.min(2000, Math.floor(PAYLOAD / 2)));
+  const rest = data.subarray(head.length);
+  info(`large-path payload ${PAYLOAD} B (~${Math.ceil(rest.length / 4096)} append chunks)`);
 
   const bigId = (await (await new FileCreateTransaction()
-    .setKeys(operatorKey.publicKey)  // agent-keyed so it can be appended
+    .setKeys([operatorKey.publicKey]) // agent-keyed so it can be appended (array form)
     .setContents(head)
     .execute(client)).getReceipt(client)).fileId;
   info(`seal-path file ${bigId.toString()} created (agent-keyed)`);
@@ -50,8 +55,8 @@ async function main() {
   info(`appended ${rest.length} bytes in chunks`);
 
   const preSeal = await new FileContentsQuery().setFileId(bigId).execute(client);
-  if (!Buffer.from(preSeal).equals(data)) return fail("pre-seal 100 KB read not byte-identical");
-  pass("pre-seal 100 KB byte-identical round-trip");
+  if (!Buffer.from(preSeal).equals(data)) return fail("pre-seal read not byte-identical");
+  pass(`pre-seal ${data.length} B byte-identical round-trip`);
 
   // Seal: FileUpdate with empty KeyList → "the file SHALL be immutable after completion".
   await (await new FileUpdateTransaction()
@@ -62,7 +67,7 @@ async function main() {
 
   const postSeal = await new FileContentsQuery().setFileId(bigId).execute(client);
   if (!Buffer.from(postSeal).equals(data)) return fail("post-seal read not byte-identical");
-  pass("post-seal 100 KB still byte-identical");
+  pass(`post-seal ${data.length} B still byte-identical`);
 
   if (!(await rejected(() =>
     new FileAppendTransaction().setFileId(bigId).setContents(crypto.randomBytes(16)).execute(client).then((r) => r.getReceipt(client)),

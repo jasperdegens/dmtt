@@ -81,11 +81,26 @@ export function hederaClientOrSkip(spikeName) {
   }
   const net = (process.env.HEDERA_NETWORK || "testnet").toLowerCase();
   const client = net === "mainnet" ? Client.forMainnet() : Client.forTestnet();
-  let pk;
-  for (const fn of ["fromStringDer", "fromStringECDSA", "fromStringED25519", "fromString"]) {
-    try { pk = PrivateKey[fn](key); break; } catch { /* try next */ }
-  }
+  const pk = parseOperatorKey(key);
   if (!pk) { fail(`${spikeName}: could not parse HEDERA_OPERATOR_KEY`); return null; }
   client.setOperator(AccountId.fromString(id), pk);
   return { client, operatorId: AccountId.fromString(id), operatorKey: pk, network: net };
+}
+
+// Hedera keys: DER-encoded start with 0x30; raw 32-byte hex is ambiguous ECDSA/ED25519.
+// Picking the wrong curve yields a valid-looking key that fails with INVALID_SIGNATURE,
+// so honor an explicit HEDERA_KEY_TYPE and default raw hex to ECDSA (testnet faucet default).
+function parseOperatorKey(raw) {
+  const key = raw.trim();
+  const type = (process.env.HEDERA_KEY_TYPE || "").toUpperCase();
+  const isDer = /^(0x)?30/.test(key);
+  const order =
+    type === "ECDSA" ? ["fromStringECDSA"] :
+    type === "ED25519" ? ["fromStringED25519"] :
+    isDer ? ["fromStringDer", "fromStringECDSA", "fromStringED25519"] :
+    ["fromStringECDSA", "fromStringED25519", "fromStringDer"];
+  for (const fn of [...order, "fromString"]) {
+    try { return PrivateKey[fn](key); } catch { /* next */ }
+  }
+  return null;
 }
