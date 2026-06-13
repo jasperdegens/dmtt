@@ -43,7 +43,7 @@ export function ChatInput({
           onKeyDown={(e) => {
             if (e.key === "Enter") submit();
           }}
-          placeholder={disabled ? "Paused — use the card above" : 'e.g. "weekly", "50 hbar"…'}
+          placeholder={disabled ? "Paused — use the card above" : 'e.g. "2 minutes", "0.1 hbar"…'}
           className="flex-1 rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-neutral-600 disabled:opacity-50"
         />
         <button

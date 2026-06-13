@@ -93,15 +93,17 @@ test("RESET returns to IDLE and clears artifacts", () => {
 
 // ── parseFreeText — proposals only ───────────────────────────────────────────
 test("parseFreeText maps cadences and funding", () => {
+  assert.equal(parseFreeText("1 minute").terms?.intervalSec, 60);
+  assert.equal(parseFreeText("2 minutes").terms?.intervalSec, 120);
   assert.equal(parseFreeText("1 day").terms?.intervalSec, 86_400);
   assert.equal(parseFreeText("daily").terms?.intervalSec, 86_400);
   assert.equal(parseFreeText("weekly").terms?.intervalSec, 604_800);
   assert.equal(parseFreeText("every week").terms?.intervalSec, 604_800);
-  assert.equal(parseFreeText("2 hours").terms?.intervalSec, 7_200);
+  assert.equal(parseFreeText("2 hours").kind, "unknown");
 
-  const fund = parseFreeText("50 hbar");
+  const fund = parseFreeText("0.1 hbar");
   assert.equal(fund.kind, "funding");
-  assert.equal(fund.terms?.fundingHbar, 50);
+  assert.equal(fund.terms?.fundingHbar, 0.1);
 
   assert.equal(parseFreeText("hello there").kind, "unknown");
 });
