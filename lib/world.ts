@@ -4,18 +4,28 @@
 //   1. signRpContext() — the backend signs rp_context with the server-only
 //      signing_key (signRequest from @worldcoin/idkit-core/signing). The key is
 //      NEVER NEXT_PUBLIC_* and never leaves the server (CLAUDE.md / CONTRACTS §9).
-//   2. verifyWorldProof() — forwards the proof AS-IS (no re-encoding) plus the
-//      top-level `action` (G0: without it /verify 400s "action is required") and
-//      the bound `signal`, to https://developer.world.org/api/v4/verify/{rp_id}.
+//   2. verifyWorldProof() — forwards the full IDKit response AS-IS (no re-encoding)
+//      plus the top-level `action` (G0: without it /verify 400s "action is required")
+//      and WORLD_ENV, to https://developer.world.org/api/v4/verify/{rp_id}.
 //
 // buildVerifyPayload is split out as a PURE, testable helper (the G0 shape).
 // Relative imports, explicit .ts extensions, no @/ in lib/**.
 
 import { signRequest } from "@worldcoin/idkit-core/signing";
 import { env, hasWorldCreds } from "./env.ts";
-import type { RpContextResponse, WorldVerifyRequest, WorldVerifyResponse } from "./types.ts";
+import type {
+  Nullifier,
+  RpContextResponse,
+  WorldEnvironment,
+  WorldVerifyRequest,
+  WorldVerifyResponse,
+} from "./types.ts";
 
 const VERIFY_BASE = "https://developer.world.org/api/v4/verify";
+
+export function worldEnvironment(): WorldEnvironment {
+  return env("WORLD_ENV") === "staging" ? "staging" : "production";
+}
 
 /** Backend-signed rp_context. Uses WORLD_SIGNING_KEY (strip 0x) + WORLD_ACTION;
  *  returns { rp_id: WORLD_RP_ID, nonce, created_at, expires_at, signature }.
@@ -39,14 +49,33 @@ export function signRpContext(): RpContextResponse {
   };
 }
 
-/** PURE: the exact body posted to /api/v4/verify — the proof AS-IS, plus the
- *  top-level `action` (G0 requirement) and the bound `signal`. Testable. */
-export function buildVerifyPayload(req: WorldVerifyRequest): Record<string, unknown> {
-  return { action: req.action, signal: req.signal, ...req.proof };
+/** PURE: the exact body posted to /api/v4/verify. Real IDKit v4 requests preserve
+ *  `responses[]`; the compact proof path remains only for legacy/internal callers. */
+export function buildVerifyPayload(
+  req: WorldVerifyRequest,
+  environment: WorldEnvironment = req.environment ?? worldEnvironment(),
+): Record<string, unknown> {
+  if (req.idkitResponse) {
+    return { ...req.idkitResponse, action: req.action, environment };
+  }
+  if (!req.proof) throw new Error("missing proof or idkitResponse");
+  return { ...req.proof, action: req.action, signal: req.signal, environment };
+}
+
+export function nullifierFromVerifyRequest(req: WorldVerifyRequest): Nullifier | undefined {
+  if (req.proof) return req.proof.nullifier_hash;
+  const first = req.idkitResponse?.responses[0];
+  const nullifier = first?.nullifier;
+  if (typeof nullifier === "string") return nullifier;
+  const sessionNullifier = first?.session_nullifier;
+  if (Array.isArray(sessionNullifier) && typeof sessionNullifier[0] === "string") {
+    return sessionNullifier[0];
+  }
+  return undefined;
 }
 
 /** POST the verify payload to the World endpoint. ok ⟺ upstream status 200.
- *  Returns { ok, nullifier? (the proof's nullifier_hash when ok), detail? (the
+ *  Returns { ok, nullifier? (the proof's nullifier when ok), detail? (the
  *  upstream text when !ok) }. When World isn't configured: { ok:false, ... } with
  *  no network call. `fetchFn` is injectable for tests. */
 export async function verifyWorldProof(
@@ -65,7 +94,7 @@ export async function verifyWorldProof(
   });
 
   const ok = res.status === 200;
-  if (ok) return { ok: true, nullifier: req.proof.nullifier_hash };
+  if (ok) return { ok: true, nullifier: nullifierFromVerifyRequest(req) };
 
   let detail = `verify failed (status ${res.status})`;
   try {

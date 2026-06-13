@@ -1,14 +1,14 @@
 // app/api/world/verify/route.ts — verify a World proof (CONTRACTS §9).
 //
-// Forwards the proof AS-IS (no re-encoding) plus the top-level `action` (G0: the
-// endpoint 400s "action is required" without it) and the bound `signal`, to
+// Forwards the IDKit result AS-IS (no re-encoding) plus the top-level `action`
+// and WORLD_ENV, to
 // https://developer.world.org/api/v4/verify/{rp_id}. ok ⟺ upstream 200 → returns
 // the verified nullifier; else { ok:false, detail }. 503 when World isn't
 // configured (verifyWorldProof short-circuits with no network call).
 
 import { NextResponse } from "next/server";
 
-import { verifyWorldProof } from "@/lib/world.ts";
+import { verifyWorldProof, worldEnvironment } from "@/lib/world.ts";
 import { hasWorldCreds } from "@/lib/env.ts";
 import type { WorldVerifyRequest } from "@/lib/types.ts";
 
@@ -24,9 +24,21 @@ export async function POST(req: Request): Promise<Response> {
     return NextResponse.json({ ok: false, detail: "invalid JSON body" }, { status: 400 });
   }
 
-  if (!body || !body.proof || !body.action || !body.signal) {
+  if (!body || (!body.proof && !body.idkitResponse) || !body.action || !body.signal) {
     return NextResponse.json(
-      { ok: false, detail: "missing proof, action, or signal" },
+      { ok: false, detail: "missing proof/idkitResponse, action, or signal" },
+      { status: 400 },
+    );
+  }
+  if (body.idkitResponse && !Array.isArray(body.idkitResponse.responses)) {
+    return NextResponse.json(
+      { ok: false, detail: "idkitResponse.responses array is required" },
+      { status: 400 },
+    );
+  }
+  if (body.environment && body.environment !== worldEnvironment()) {
+    return NextResponse.json(
+      { ok: false, detail: `world environment mismatch: expected ${worldEnvironment()}` },
       { status: 400 },
     );
   }

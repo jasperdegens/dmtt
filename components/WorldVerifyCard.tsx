@@ -7,7 +7,7 @@
 // IDKit flow against the configured app, then forwards the proof to the SERVER-ONLY
 // verify route (POST /api/world/verify) which re-signs/re-checks it; on success the
 // route returns the verified nullifier. The signing_key stays server-side — only the
-// public NEXT_PUBLIC_WORLD_APP_ID reaches the client.
+// public NEXT_PUBLIC_WORLD_* config reaches the client.
 //
 // IDKit v4's rp_context must be signed by the backend (POST /api/world/rp-context); we
 // fetch it before opening the widget. When World isn't configured (no app id, or a dev
@@ -24,7 +24,7 @@ import {
 import type {
   Nullifier,
   RpContextResponse,
-  WorldProof,
+  WorldEnvironment,
   WorldVerifyResponse,
 } from "@/lib/types.ts";
 
@@ -35,28 +35,15 @@ export interface WorldVerified {
 const APP_ID = process.env.NEXT_PUBLIC_WORLD_APP_ID ?? "";
 const ACTION = process.env.NEXT_PUBLIC_WORLD_ACTION ?? "check-in";
 
-/** Extract the frozen WorldProof shape from a v4 IDKit result (first credential). */
-function toWorldProof(result: IDKitResult): WorldProof | null {
-  if (!("responses" in result) || result.responses.length === 0) return null;
-  const r = result.responses[0];
-  // V4: proof is string[] (Groth16 + merkle root); nullifier is the RP-scoped hex.
-  const proofArr = (r as { proof?: unknown }).proof;
-  const nullifier = (r as { nullifier?: unknown }).nullifier;
-  if (typeof nullifier !== "string") return null;
-  return {
-    proof: Array.isArray(proofArr) ? proofArr.join(",") : String(proofArr ?? ""),
-    merkle_root: Array.isArray(proofArr) ? String(proofArr[4] ?? "") : "",
-    nullifier_hash: nullifier,
-    verification_level: "orb",
-  };
-}
-
 export function WorldVerifyCard({
   signal,
+  environment,
   onVerified,
 }: {
   /** The bound signal (arm-enroll or check-in signalHash). */
   signal: string;
+  /** Must match WORLD_ENV and the action's Portal environment. */
+  environment: WorldEnvironment;
   onVerified: (v: WorldVerified) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -92,12 +79,10 @@ export function WorldVerifyCard({
     setBusy(true);
     setError(null);
     try {
-      const proof = toWorldProof(result);
-      if (!proof) throw new Error("unexpected proof shape");
       const res = await fetch("/api/world/verify", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ proof, action: ACTION, signal }),
+        body: JSON.stringify({ idkitResponse: result, action: ACTION, signal, environment }),
       });
       const body = (await res.json()) as WorldVerifyResponse;
       if (!body.ok || !body.nullifier) {
@@ -147,6 +132,7 @@ export function WorldVerifyCard({
               action={ACTION}
               rp_context={rpContext as unknown as RpContext}
               allow_legacy_proofs={true}
+              environment={environment}
               preset={orbLegacy({ signal })}
               onSuccess={handleSuccess}
               onError={(code) => setError(String(code))}
