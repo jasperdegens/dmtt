@@ -35,6 +35,7 @@ import {
   type ReleaseAuthorizedEvent,
   type MirrorVerifyResult,
   type MirrorTopicMessage,
+  type MirrorTransaction,
   type HederaSurface,
   type TopicId,
   type ScheduleId,
@@ -201,6 +202,43 @@ export function parseTopicMessages(json: unknown): MirrorTopicMessage[] {
 export function topicMessagesUrl(base: string, topicId: TopicId, afterSeq?: number): string {
   const seqClause = afterSeq != null && afterSeq > 0 ? `&sequencenumber=gt:${afterSeq}` : "";
   return `${base.replace(/\/$/, "")}/api/v1/topics/${topicId}/messages?limit=100&order=asc${seqClause}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PURE: account-transaction parsing (mirror REST → MirrorTransaction). Feeds the
+// watcher's cancel backstop (Phase 5): scan the AGENT account's inbound transfers
+// for device-signed DMTT:CANCEL:<topicId> memos (the cancel authority is the on-chain
+// transfer, not the /api/cancel call — C1). The decode + verify recipe is the same
+// mirrorVerifyTransfer the executor re-runs before honoring.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Map the mirror's /api/v1/transactions rows to the typed MirrorTransaction shape.
+ *  Pure (no fetch): the network read lives in mirrorAccountTransactions. */
+export function parseAccountTransactions(json: unknown): MirrorTransaction[] {
+  const rows = (json as { transactions?: unknown[] } | null)?.transactions;
+  if (!Array.isArray(rows)) return [];
+  return rows.map((r) => {
+    const row = r as MirrorTxRaw;
+    return {
+      transactionId: String(row.transaction_id ?? ""),
+      result: String(row.result ?? ""),
+      memoBase64: row.memo_base64 ?? null,
+      consensusTimestamp: String(row.consensus_timestamp ?? ""),
+      transfers: Array.isArray(row.transfers) ? row.transfers : [],
+    } satisfies MirrorTransaction;
+  });
+}
+
+/** Build the mirror URL for an account's transactions, consensus order, paged forward
+ *  from `afterTimestamp` ("secs.nanos"). NB: /api/v1/accounts/{id}/transactions is a 404
+ *  (CLAUDE.md C1) — the account.id query param is the supported form. */
+export function accountTransactionsUrl(
+  base: string,
+  accountId: AccountIdStr,
+  afterTimestamp?: string,
+): string {
+  const tsClause = afterTimestamp ? `&timestamp=gt:${encodeURIComponent(afterTimestamp)}` : "";
+  return `${base.replace(/\/$/, "")}/api/v1/transactions?account.id=${encodeURIComponent(accountId)}&order=asc&limit=100${tsClause}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -440,7 +478,8 @@ export const hedera: HederaSurface = {
   listTopicMessages: (t, a) => surface().listTopicMessages(t, a),
 };
 
-/** Re-export for the file route / callers that want the creds gate. */
+/** Agent → recipient CryptoTransfer (the watcher's autonomous release-bounty payment).
+ *  Standalone (not on HederaSurface): the watcher imports it directly. */
 export async function payHbar(toAccountId: string, amountHbar: number, memo?: string): Promise<TxId> {
   const { client, operatorId } = operator();
   const tx = new TransferTransaction()
@@ -452,4 +491,18 @@ export async function payHbar(toAccountId: string, amountHbar: number, memo?: st
   return resp.transactionId.toString();
 }
 
+/** Page the agent account's transactions from the mirror (consensus order, after a
+ *  timestamp cursor). Standalone (NOT on HederaSurface — keeps the frozen contract
+ *  intact): the watcher cancel backstop imports it directly. Returns [] on non-200. */
+export async function mirrorAccountTransactions(
+  accountId: AccountIdStr,
+  afterTimestamp?: string,
+): Promise<MirrorTransaction[]> {
+  const url = accountTransactionsUrl(mirrorBase(), accountId, afterTimestamp);
+  const res = await fetch(url, { headers: { accept: "application/json" } });
+  if (res.status !== 200) return [];
+  return parseAccountTransactions(await res.json());
+}
+
+/** Re-export for the file route / callers that want the creds gate. */
 export { hasHederaCreds };
