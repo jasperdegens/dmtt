@@ -16,6 +16,7 @@
 import { useState } from "react";
 
 import { WorldVerifyCard, type WorldVerified } from "@/components/WorldVerifyCard.tsx";
+import { usePirate } from "@/components/scene/PirateContext.tsx";
 import { buildCheckinRequest, isExhausted } from "@/lib/checkin-client.ts";
 import type {
   CheckinInput,
@@ -57,33 +58,27 @@ export function CheckinCard({
   onCheckedIn?: (result: CheckinResult) => void;
 }) {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const { runWhile } = usePirate();
 
   // Show the success of the check-in you JUST made, regardless of the now-advanced view
   // (a fresh `view` would otherwise re-derive the next rung and hide this confirmation).
   if (status.kind === "success") {
     const r = status.result;
     return (
-      <div className="rounded-xl border border-emerald-900 bg-neutral-950 p-5">
-        <h2 className="text-lg font-semibold text-emerald-300">Checked in.</h2>
-        <p className="mt-2 text-sm text-neutral-400">
-          Release postponed. You burned the soonest rung and advanced to seq{" "}
-          <span className="font-mono text-neutral-200">{r.seq}</span> (rung{" "}
-          <span className="font-mono text-neutral-200">{r.liveIdx}</span>).
-        </p>
-        <p className="mt-1 text-sm text-neutral-400">
-          New deadline:{" "}
-          <span className="font-mono text-neutral-200">
-            {new Date(r.newDeadline).toUTCString()}
-          </span>
+      <div className="compose compose--ok">
+        <p className="compose__tag">✅ Checked in — still breathing</p>
+        <p className="compose__lead">
+          Burned the nearest rung. Now at signal{" "}
+          <span className="mono">{r.seq}</span> (rung <span className="mono">{r.liveIdx}</span>);
+          release shoved out to{" "}
+          <span className="mono">{new Date(r.newDeadline).toUTCString()}</span>.
         </p>
         <button
           type="button"
-          onClick={() =>
-            onCheckedIn ? setStatus({ kind: "idle" }) : window.location.reload()
-          }
-          className="mt-4 inline-block rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
+          onClick={() => (onCheckedIn ? setStatus({ kind: "idle" }) : window.location.reload())}
+          className="btn btn--gold"
         >
-          {onCheckedIn ? "Done" : "Refresh status"}
+          {onCheckedIn ? "Aye, carry on" : "Refresh status"}
         </button>
       </div>
     );
@@ -95,11 +90,11 @@ export function CheckinCard({
   // nothing to check in. Show the imminent-release notice instead of the gate.
   if (isExhausted(built)) {
     return (
-      <div className="rounded-xl border border-amber-900 bg-neutral-950 p-5">
-        <h2 className="text-lg font-semibold">Check in</h2>
-        <p className="mt-2 text-sm text-amber-300">
-          No postponements left — release is imminent. The final rung is armed and will
-          fire at its deadline; there is no further check-in to make.
+      <div className="compose compose--released">
+        <p className="compose__tag">⏳ No postponements left</p>
+        <p className="compose__lead">
+          The final rung is armed and will fire at its deadline — there is no further
+          check-in to make.
         </p>
       </div>
     );
@@ -127,67 +122,65 @@ export function CheckinCard({
       input,
       artifacts,
     };
-    try {
-      const res = await fetch("/api/checkin", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        // The route returns { error: ExecError } on a 400 (executor reject), or
-        // { error: string } on a 500. Surface the code + message either way.
-        const body = (await res.json().catch(() => null)) as
-          | { error?: ExecError | string }
-          | null;
-        const err = body?.error;
-        if (err && typeof err === "object") {
-          setStatus({ kind: "error", error: err });
-        } else {
+    // The captain waits through the network round-trip; thinking is reserved for
+    // the signed-but-not-yet-armed setup gap.
+    await runWhile(
+      "waiting",
+      async () => {
+        try {
+          const res = await fetch("/api/checkin", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) {
+            // The route returns { error: ExecError } on a 400 (executor reject), or
+            // { error: string } on a 500. Surface the code + message either way.
+            const body = (await res.json().catch(() => null)) as
+              | { error?: ExecError | string }
+              | null;
+            const err = body?.error;
+            if (err && typeof err === "object") {
+              setStatus({ kind: "error", error: err });
+            } else {
+              setStatus({
+                kind: "error",
+                error: { code: `HTTP_${res.status}`, message: String(err ?? res.statusText) },
+              });
+            }
+            return;
+          }
+          const result = (await res.json()) as CheckinResult;
+          setStatus({ kind: "success", result });
+          onCheckedIn?.(result);
+        } catch (e) {
           setStatus({
             kind: "error",
-            error: { code: `HTTP_${res.status}`, message: String(err ?? res.statusText) },
+            error: { code: "NETWORK", message: e instanceof Error ? e.message : String(e) },
           });
         }
-        return;
-      }
-      const result = (await res.json()) as CheckinResult;
-      setStatus({ kind: "success", result });
-      onCheckedIn?.(result);
-    } catch (e) {
-      setStatus({
-        kind: "error",
-        error: { code: "NETWORK", message: e instanceof Error ? e.message : String(e) },
-      });
-    }
+      },
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
-        <h2 className="text-lg font-semibold">Check in to postpone</h2>
-        <p className="mt-1 text-sm text-neutral-400">
-          Prove you&apos;re still here. A verified-human check-in burns the soonest rung
-          and pushes release out one interval — to{" "}
-          <span className="font-mono text-neutral-300">
-            {new Date(newDeadline).toUTCString()}
-          </span>{" "}
-          (seq <span className="font-mono text-neutral-300">{newSeq}</span>).
+    <div className="space-y-3">
+      <p className="compose__lead">
+        Prove yer still here an’ I’ll shove release out to{" "}
+        <span className="mono">{new Date(newDeadline).toUTCString()}</span> (signal{" "}
+        <span className="mono">{newSeq}</span>).
+      </p>
+      {status.kind === "error" ? (
+        <p className="compose__err">
+          <span className="mono">{status.error.code}</span>: {status.error.message}
         </p>
-        {status.kind === "submitting" ? (
-          <p className="mt-3 text-xs text-neutral-400">Submitting check-in…</p>
-        ) : null}
-        {status.kind === "error" ? (
-          <p className="mt-3 text-xs text-red-400">
-            <span className="font-mono">{status.error.code}</span>: {status.error.message}
-          </p>
-        ) : null}
-      </div>
+      ) : null}
 
       {/* The World gate over the COMPUTED signal — disabled while the POST is in flight
           (a fresh proof is single-use; don't let a double-tap fire two check-ins). */}
       {status.kind === "submitting" ? (
-        <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5 opacity-50">
-          <p className="text-sm text-neutral-400">Verifying… please wait.</p>
+        <div className="compose">
+          <p className="compose__lead">Verifyin’… hold fast.</p>
         </div>
       ) : (
         <WorldVerifyCard

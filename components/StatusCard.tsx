@@ -35,9 +35,9 @@ export function countdown(deadlineMs: number, nowMs: number): string {
 }
 
 const STATUS_STYLE: Record<SwitchView["status"], string> = {
-  ACTIVE: "bg-emerald-900 text-emerald-300",
-  RELEASED: "bg-amber-900 text-amber-300",
-  CANCELLED: "bg-neutral-800 text-neutral-400",
+  ACTIVE: "badge badge--active",
+  RELEASED: "badge badge--released",
+  CANCELLED: "badge badge--cancelled",
 };
 
 export function StatusCard({
@@ -101,71 +101,65 @@ export function StatusCard({
   // pre-first-view "Loading…" hint when no view has arrived yet.
   const showLoading = controlled ? view === null : loading && !view;
 
+  const total = view ? view.rungHashes.length || view.terms.n : 0;
+
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Switch status</h2>
+    <div className="compose">
+      <div className="status-line">
+        <span>Your pact</span>
         {view ? (
-          <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLE[view.status]}`}
-          >
-            {view.status}
-          </span>
-        ) : null}
+          <span className={STATUS_STYLE[view.status]}>{view.status}</span>
+        ) : (
+          <span className="badge badge--loading">loading</span>
+        )}
       </div>
 
-      <p className="mt-1 break-all font-mono text-xs text-neutral-500">{topicId}</p>
-
-      {showLoading ? (
-        <p className="mt-4 text-sm text-neutral-400">Loading…</p>
-      ) : null}
-
-      {error ? <p className="mt-4 text-sm text-red-400">{error}</p> : null}
+      {showLoading ? <p className="compose__lead">Scryin’ the mirror…</p> : null}
+      {error ? <p className="compose__err">{error}</p> : null}
 
       {view ? (
-        <div className="mt-4 space-y-3 text-sm">
-          <div className="grid grid-cols-2 gap-3">
+        <>
+          <div className="status-grid">
             <div>
-              <div className="text-xs text-neutral-500">Live rung</div>
-              <div className="font-mono">
-                {view.liveIdx} / {view.rungHashes.length || view.terms.n}
-              </div>
+              <span>Next signal</span>
+              <b>{view.currentDeadline === null ? "—" : countdown(view.currentDeadline, now)}</b>
             </div>
             <div>
-              <div className="text-xs text-neutral-500">Check-ins (seq)</div>
-              <div className="font-mono">{view.seq}</div>
+              <span>Rung</span>
+              <b>
+                {view.liveIdx}/{total}
+              </b>
+            </div>
+            <div>
+              <span>Check-ins</span>
+              <b>{view.seq}</b>
             </div>
           </div>
 
-          <div>
-            <div className="text-xs text-neutral-500">Next deadline</div>
-            <div className="font-mono">
-              {view.currentDeadline === null
-                ? "—"
-                : `${countdown(view.currentDeadline, now)} · ${new Date(view.currentDeadline).toUTCString()}`}
-            </div>
-          </div>
+          {view.currentDeadline !== null ? (
+            <p className="compose__note">Deadline: {new Date(view.currentDeadline).toUTCString()}</p>
+          ) : null}
 
-          <div className="border-t border-neutral-800 pt-3">
-            <div className="text-xs text-neutral-500">Audit trail</div>
-            <ul className="mt-1 space-y-0.5 font-mono text-xs text-neutral-400">
+          <details className="peek">
+            <summary>Audit trail · {view.events.length}</summary>
+            <ul className="peek__body mt-2 space-y-0.5">
               {view.events.length === 0 ? (
-                <li className="text-neutral-600">no events yet</li>
+                <li className="opacity-60">no events yet</li>
               ) : (
                 view.events.map((e, i) => <li key={i}>· {e.type}</li>)
               )}
             </ul>
-          </div>
+          </details>
 
           <a
             href={hashscanTopic(view.topicId)}
             target="_blank"
             rel="noreferrer"
-            className="inline-block text-xs text-emerald-400 underline"
+            className="gold-link text-xs"
           >
             View topic on HashScan ↗
           </a>
-        </div>
+        </>
       ) : null}
     </div>
   );

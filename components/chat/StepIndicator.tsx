@@ -1,10 +1,11 @@
 "use client";
 
-// components/chat/StepIndicator.tsx — the fixed step ladder (WS-E).
+// components/chat/StepIndicator.tsx — the fixed step ladder (WS-E), as a row of
+// compact gold pips in the bubble head with the current step named.
 //
-// Renders IDLE → MEMO → TERMS → WORLD → SIGN → ARMED with the current step
-// highlighted and completed steps checked. Purely presentational — the order is
-// fixed (the machine never reorders), so this just reflects ctx.state.
+// Renders MEMO → TERMS → WORLD → SIGN → ARMED with completed steps filled and the
+// current one lit. Purely presentational — the order is fixed (the machine never
+// reorders), so this just reflects ctx.state.
 
 import type { ChatState } from "@/lib/chat-machine.ts";
 import { STEP_ORDER, STEP_LABEL } from "./types.ts";
@@ -20,31 +21,24 @@ function activeStep(state: ChatState): ChatState {
 export function StepIndicator({ state }: { state: ChatState }) {
   const active = activeStep(state);
   const activeIdx = STEP_ORDER.indexOf(active);
+  const steps = STEP_ORDER.filter((s) => s !== "IDLE");
 
   return (
-    <ol className="flex items-center gap-1 text-xs" aria-label="Setup progress">
-      {STEP_ORDER.filter((s) => s !== "IDLE").map((step) => {
+    <div className="steps" aria-label={`Setup step: ${STEP_LABEL[active]}`}>
+      {steps.map((step) => {
         const idx = STEP_ORDER.indexOf(step);
         const done = idx < activeIdx;
         const current = idx === activeIdx;
         return (
-          <li
+          <span
             key={step}
-            className={[
-              "rounded-full px-2.5 py-1",
-              current
-                ? "bg-emerald-600 text-white"
-                : done
-                  ? "bg-emerald-900/40 text-emerald-300"
-                  : "bg-neutral-800 text-neutral-500",
-            ].join(" ")}
+            className={["step", done ? "step--done" : "", current ? "step--current" : ""].join(" ")}
             aria-current={current ? "step" : undefined}
-          >
-            {done ? "✓ " : ""}
-            {STEP_LABEL[step]}
-          </li>
+            title={STEP_LABEL[step]}
+          />
         );
       })}
-    </ol>
+      <span className="step__label">{STEP_LABEL[active]}</span>
+    </div>
   );
 }

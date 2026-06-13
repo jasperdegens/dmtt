@@ -162,27 +162,29 @@ export function reduce(ctx: ChatContext, ev: ChatEvent): ChatContext {
 
 export function narrate(ctx: ChatContext): string {
   if (ctx.error) {
-    return `I can't do that: ${ctx.error}. Each step needs its real artifact — I can't skip ahead.`;
+    return `Belay that — ${ctx.error}. No skippin' ahead.`;
   }
   switch (ctx.state) {
     case "IDLE":
-      return "Let's set up your switch. First, write the memo — it's encrypted in your browser before anything leaves your device.";
     case "MEMO":
-      return "Write the memo in the card above — it's encrypted in your browser before anything leaves your device.";
+      return "Scrawl yer memo below. I seal it in yer browser — not even I can read it.";
     case "TERMS":
-      return "Memo captured (encrypted locally). Now choose your terms: how often you'll check in, the funding, and an optional public bulletin. You can also just type something like “2 minutes” or “0.1 hbar”.";
+      return "How often will ye check in? Miss one turn an' yer secret spills.";
     case "WORLD":
-      return "Terms set. Next, verify you're a unique human with World ID — this is the authority that lets you postpone later.";
+      return "Now prove yer a livin' soul — one tap. Can't be faked nor handed off.";
     case "SIGN":
-      return "Verified. Now sign the arm funding transfer on your Ledger — that's the device authority that arms the switch.";
+      if (canArm(ctx)) {
+        return "Ledger mark's aboard. Last choice: arm the pact and I'll keep watch.";
+      }
+      return "Last deed: sign it on yer Ledger. That key's yours alone.";
     case "ARMED":
-      return "Armed. Your switch is live; check in before each deadline to postpone, or it releases when you go silent.";
+      return "Armed! Check in afore each deadline, or the deep takes it.";
     case "CHECKIN":
-      return "Checking in postpones the next release. Verify with World ID to advance one rung.";
+      return "Prove yer still kickin' an' I'll buy ye more time.";
     case "CANCEL":
-      return "Cancelling requires a device-signed transfer; that's the only way to stand the switch down.";
+      return "Standin' down wants yer Ledger's signature — nothin' less.";
     default:
-      return "Ready.";
+      return "Ready when ye are.";
   }
 }
 

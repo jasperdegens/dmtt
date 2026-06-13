@@ -15,6 +15,9 @@ build/
 # DMTT switch state — holds the sealed tlock ladders
 /data/
 
+# large source media
+public/proRes/
+
 # logs / os / editor
 *.log
 .DS_Store

@@ -1,3 +1,8 @@
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const projectRoot = dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -12,6 +17,11 @@ const nextConfig = {
   ],
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
+  // A stray /Users/jasper/package-lock.json makes Next mis-infer the workspace root;
+  // pin it to this project so file tracing + the dev overlay behave.
+  outputFileTracingRoot: projectRoot,
+  // Keep the dev overlay button out of the corner (it overlaps the countdown watch).
+  devIndicators: false,
 };
 
 export default nextConfig;

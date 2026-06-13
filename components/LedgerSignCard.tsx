@@ -47,50 +47,42 @@ export function LedgerSignCard({
   }
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
-      <h2 className="text-lg font-semibold">Arm with your Ledger</h2>
-      <p className="mt-1 text-xs text-neutral-400">
-        Your device signs a {fundingHbar} ℏ funding transfer to the agent. The Trusted
-        Display will show the recipient, the amount, and this memo:
-      </p>
-      <p className="mt-2 break-all rounded-md bg-neutral-900 p-2 font-mono text-xs text-neutral-300">
-        {memo}
+    <div className="compose">
+      <p className="compose__tag">🔏 Signed on-device · the key never leaves your Ledger</p>
+
+      <p className="compose__lead">
+        Yer device signs a {fundingHbar} ℏ funding transfer to the agent. The Trusted
+        Display shows the recipient, the amount, and this memo:
       </p>
 
+      <details className="peek" open>
+        <summary>Memo to confirm on the Trusted Display</summary>
+        <p className="peek__body mt-2">{memo}</p>
+      </details>
+
       {!ledger.supported ? (
-        <p className="mt-4 rounded-md border border-amber-900 bg-amber-950/40 p-2 text-xs text-amber-300">
+        <p className="compose__err">
           This browser can’t reach a Ledger over USB. Use desktop Chrome, Edge or Brave over
           HTTPS (or localhost).
         </p>
       ) : null}
 
       {ledger.account ? (
-        <div className="mt-4 rounded-md border border-neutral-800 bg-neutral-900 p-3 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-neutral-400">Ledger account</span>
-            <span className="font-mono text-emerald-300">{ledger.account}</span>
-          </div>
-          <div className="mt-1 truncate text-[11px] text-neutral-500">
-            {hederaDerivationPath()} · key {ledger.pubKey?.slice(0, 16)}…
-          </div>
-        </div>
+        <p className="compose__note">
+          Ledger account {ledger.account} · {hederaDerivationPath()} · key{" "}
+          {ledger.pubKey?.slice(0, 16)}…
+        </p>
       ) : null}
 
       {ledger.prompt ? (
-        <p className="mt-3 flex items-center gap-2 text-xs text-neutral-300">
+        <p className="compose__lead flex items-center gap-2">
           <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
           {ledger.prompt}
         </p>
       ) : null}
 
       {ledger.error ? (
-        <p
-          className={`mt-3 rounded-md border p-2 text-xs ${
-            ledger.error.rejected
-              ? "border-amber-900 bg-amber-950/40 text-amber-300"
-              : "border-red-900 bg-red-950/40 text-red-300"
-          }`}
-        >
+        <p className={ledger.error.rejected ? "compose__note" : "compose__err"}>
           {ledger.error.message}
         </p>
       ) : null}
@@ -100,9 +92,9 @@ export function LedgerSignCard({
           type="button"
           disabled={!ledger.supported || busy}
           onClick={() => void ledger.connect()}
-          className="mt-4 w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="btn btn--gold w-full"
         >
-          {ledger.phase === "connecting" ? "Connecting…" : "Connect Ledger & find account"}
+          {ledger.phase === "connecting" ? "Connectin’…" : "Connect yer Ledger & find account"}
         </button>
       ) : null}
 
@@ -111,16 +103,14 @@ export function LedgerSignCard({
           type="button"
           disabled={busy}
           onClick={() => void sign()}
-          className="mt-4 w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="btn btn--gold w-full"
         >
-          {ledger.phase === "signing" ? "Signing on device…" : `Sign ${fundingHbar} ℏ transfer on Ledger`}
+          {ledger.phase === "signing" ? "Waitin’ on yer device…" : `Sign the ${fundingHbar} ℏ arm transfer`}
         </button>
       ) : null}
 
       {ledger.phase === "done" ? (
-        <p className="mt-4 rounded-md border border-emerald-900 bg-emerald-950/40 p-2 text-xs text-emerald-300">
-          Signed and submitted on-chain. Arm the switch below.
-        </p>
+        <p className="compose__ok">Signed and submitted on-chain. Arm the switch below.</p>
       ) : null}
 
       {/* Dev-only escape hatch so the flow is walkable without a device. */}
@@ -128,7 +118,7 @@ export function LedgerSignCard({
         <button
           type="button"
           onClick={() => onSigned(mockArtifacts())}
-          className="mt-2 w-full rounded-md border border-neutral-700 px-4 py-2 text-xs text-neutral-400"
+          className="btn btn--ghost w-full"
         >
           Use mock artifact (dev, no device)
         </button>
