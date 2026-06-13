@@ -1,18 +1,21 @@
 "use client";
 
-// components/scene/PirateStage.tsx — the animated captain, lower-right of the scene.
+// components/scene/PirateStage.tsx — the animated captain, to the right of the chat.
 //
-// Renders the clip for the current PirateState (driven by PirateContext). The clips
-// are transparent VP9 with alpha, looped + muted (no audio). On state change the
-// <video> remounts (key=src) and fades in over its own poster frame, so the captain
-// is never blank. Under prefers-reduced-motion it renders the static poster instead.
+// EVERY clip is mounted at once and crossfaded via the `.is-active` class. That means all
+// of the captain's videos are fetched + decoded up front, so changing state never reloads
+// a clip (no switch delay) and never flashes a blank frame — the outgoing clip just fades
+// to the incoming one. object-fit:contain (CSS) guarantees the whole figure shows, never
+// clipped. Under prefers-reduced-motion it renders the active poster instead.
 //
-// A small caption pill reads out what the captain is doing — it makes the state
-// machine legible (and verifiable in screenshots).
+// A small caption pill reads out what the captain is doing — it makes the state machine
+// legible (and verifiable in screenshots).
 
 import { PIRATE_CLIPS, type PirateState } from "@/lib/pirate.ts";
 import { usePirate } from "./PirateContext.tsx";
 import { useReducedMotion } from "./useReducedMotion.ts";
+
+const STATES = Object.keys(PIRATE_CLIPS) as PirateState[];
 
 export function PirateStage({
   /** Override the captain state; defaults to the shared PirateContext state. */
@@ -30,19 +33,21 @@ export function PirateStage({
   return (
     <div className="pirate-zone" aria-hidden="true">
       {reduced ? (
-        <img className="pirate-media" src={clip.poster} alt="" draggable={false} />
+        <img className="pirate-media is-active" src={clip.poster} alt="" draggable={false} />
       ) : (
-        <video
-          key={clip.src}
-          className="pirate-media pirate-media--fade"
-          src={clip.src}
-          poster={clip.poster}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-        />
+        STATES.map((s) => (
+          <video
+            key={s}
+            className={`pirate-media${s === active ? " is-active" : ""}`}
+            src={PIRATE_CLIPS[s].src}
+            poster={PIRATE_CLIPS[s].poster}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+          />
+        ))
       )}
 
       {showCaption ? (

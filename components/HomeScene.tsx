@@ -30,19 +30,17 @@ export function HomeScene() {
     <PirateProvider>
       <SceneBackground />
 
-      <div className="dock">
-        <header className="dock__top hero">
-          <p className="hero__eyebrow">Heed the Keeper of the Pact</p>
-          <h1 className="hero__title">
-            <span>Dead Men</span>
-            <em>Tell Tales</em>
-          </h1>
-          <p className="hero__sub">
-            Leave your final words with the old sea dog — encrypted in your browser,
-            delivered only if you fall silent upon the tides.
-          </p>
-        </header>
+      {/* The hero is its own top-CENTRE banner now (not in the left dock): a very large
+          title with gold/red colour strokes that flare when the lightning strikes. */}
+      <header className="hero">
+        <p className="hero__eyebrow">Heed the Keeper of the Pact</p>
+        <h1 className="hero__title">
+          <span>Dead Men</span>
+          <em>Tell Tales</em>
+        </h1>
+      </header>
 
+      <div className="dock">
         <div className="chat-shell">
           <Chat />
         </div>

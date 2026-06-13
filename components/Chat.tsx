@@ -13,9 +13,10 @@
 //   1. PLAINTEXT and the key K NEVER leave the browser. The MemoCard encrypts locally;
 //      this component holds the captured { ciphertext, key } in React memory and posts
 //      ONLY the ciphertext bytes (to /api/storage) and metadata (ciphertextHash) — never
-//      the plaintext, never to /api/chat. The text input is DISABLED on the MEMO step.
-//   2. Free text only ever PROPOSES a chip (PARSE_TEXT) — it can never move a step or
-//      arm. Steps advance solely on captured artifacts via reduce() (the security gate).
+//      the plaintext, never to /api/chat.
+//   2. Steps advance SOLELY on captured artifacts via reduce() (the security gate). The
+//      free-text bar was removed (it had no purpose in the fixed flow), so nothing typed
+//      can move a step or arm — the structured step cards are the only inputs.
 //   3. The machine advances client-side via reduce() and stays correct with the LLM (or
 //      the whole /api/chat route) offline; /api/chat only supplies optional narration.
 //
@@ -36,7 +37,6 @@ import { SwitchActions } from "./SwitchActions.tsx";
 import { RevealCard } from "./RevealCard.tsx";
 import { MessageList } from "./chat/MessageList.tsx";
 import { StepIndicator } from "./chat/StepIndicator.tsx";
-import { ChatInput } from "./chat/ChatInput.tsx";
 import type { ChatLink, ChatMessage } from "./chat/types.ts";
 import { usePirate } from "./scene/PirateContext.tsx";
 
@@ -256,13 +256,6 @@ export function Chat() {
     },
     [dispatch, pushUser],
   );
-  const onSend = useCallback(
-    (text: string) => {
-      pushUser(text);
-      void dispatch({ type: "PARSE_TEXT", text });
-    },
-    [dispatch, pushUser],
-  );
 
   // Re-poll the watched switch immediately (used after a check-in / cancel).
   const refresh = useCallback(async () => {
@@ -459,16 +452,6 @@ export function Chat() {
     setResting(live ? "idle" : "waiting");
   }, [booted, live, setResting]);
 
-  // Invariant #1: the memo step disables the text box (plaintext must not transit chat).
-  const inputDisabled = live || step === "MEMO" || busy;
-  const disabledReason = live
-    ? "Your switch is live — use the actions above to check in or cancel."
-    : step === "MEMO"
-      ? "The memo is encrypted in your browser — write it in the card above; it never goes through chat."
-      : busy
-        ? "The Cap'n is working…"
-        : undefined;
-
   if (!booted) {
     return (
       <div className="bubble">
@@ -508,8 +491,6 @@ export function Chat() {
             one place an artifact is captured and the one place the live switch is acted on. */}
         <div className="bubble__cards">{renderActiveCard()}</div>
       </div>
-
-      <ChatInput disabled={inputDisabled} disabledReason={disabledReason} onSend={onSend} />
     </div>
   );
 
