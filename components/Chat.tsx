@@ -157,6 +157,9 @@ export function Chat() {
   // the status: the World check-in gate, the cancel ceremony, or neither.
   const [livePanel, setLivePanel] = useState<"none" | "checkin" | "cancel">("none");
 
+  // The chat collapses to just its header (tap the header to toggle).
+  const [collapsed, setCollapsed] = useState(false);
+
   // Keep the latest context in a ref so sequential dispatches never read a stale value.
   const ctxRef = useRef<ChatContext>(context);
   useEffect(() => {
@@ -469,8 +472,21 @@ export function Chat() {
   }
 
   return (
-    <div className="bubble">
-      <div className="bubble__head">
+    <div className={`bubble${collapsed ? " bubble--collapsed" : ""}`}>
+      <div
+        className="bubble__head"
+        role="button"
+        tabIndex={0}
+        aria-expanded={!collapsed}
+        aria-label={collapsed ? "Expand the chat" : "Collapse the chat"}
+        onClick={() => setCollapsed((c) => !c)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setCollapsed((c) => !c);
+          }
+        }}
+      >
         <img className="bubble__avatar" src="/posters/idle.png" alt="" />
         <div className="bubble__id">
           <div className="bubble__name">Cap&apos;n Mordecai Graves</div>
@@ -489,37 +505,47 @@ export function Chat() {
             <StepIndicator state={context.state} />
           )}
         </div>
+        <span
+          className={`bubble__chevron${collapsed ? " bubble__chevron--collapsed" : ""}`}
+          aria-hidden="true"
+        >
+          ▾
+        </span>
       </div>
 
-      <div className="bubble__log thin-scroll" ref={logRef}>
-        <MessageList messages={messages} />
-        {/* The active step / live card renders INLINE at the bottom of the scroll — the
-            one place an artifact is captured and the one place the live switch is acted on. */}
-        <div className="bubble__cards">{renderActiveCard()}</div>
-      </div>
+      {!collapsed ? (
+        <>
+          <div className="bubble__log thin-scroll" ref={logRef}>
+            <MessageList messages={messages} />
+            {/* The active step / live card renders INLINE at the bottom of the scroll — the
+                one place an artifact is captured and the one place the live switch is acted on. */}
+            <div className="bubble__cards">{renderActiveCard()}</div>
+          </div>
 
-      {/* The ACTIVE switch's bottom action bar: a large primary "Check in" (summons the
-          World check-in gate) and a secondary "Terminate" (summons the cancel ceremony).
-          Each toggles its card open/closed above; both vanish once the switch is terminal. */}
-      {live && view && view.status === "ACTIVE" ? (
-        <div className="bubble__actions">
-          <button
-            type="button"
-            className={`btn btn--gold btn--lg bubble__actions-primary${livePanel === "checkin" ? " is-on" : ""}`}
-            aria-pressed={livePanel === "checkin"}
-            onClick={() => setLivePanel((p) => (p === "checkin" ? "none" : "checkin"))}
-          >
-            ✋ Check in
-          </button>
-          <button
-            type="button"
-            className={`btn btn--danger-ghost${livePanel === "cancel" ? " is-on" : ""}`}
-            aria-pressed={livePanel === "cancel"}
-            onClick={() => setLivePanel((p) => (p === "cancel" ? "none" : "cancel"))}
-          >
-            Terminate
-          </button>
-        </div>
+          {/* The ACTIVE switch's bottom action bar: a large primary "Check in" (summons the
+              World check-in gate) and a secondary "Terminate" (summons the cancel ceremony).
+              Each toggles its card open/closed above; both vanish once the switch is terminal. */}
+          {live && view && view.status === "ACTIVE" ? (
+            <div className="bubble__actions">
+              <button
+                type="button"
+                className={`btn btn--gold btn--lg bubble__actions-primary${livePanel === "checkin" ? " is-on" : ""}`}
+                aria-pressed={livePanel === "checkin"}
+                onClick={() => setLivePanel((p) => (p === "checkin" ? "none" : "checkin"))}
+              >
+                ✋ Check in
+              </button>
+              <button
+                type="button"
+                className={`btn btn--danger-ghost${livePanel === "cancel" ? " is-on" : ""}`}
+                aria-pressed={livePanel === "cancel"}
+                onClick={() => setLivePanel((p) => (p === "cancel" ? "none" : "cancel"))}
+              >
+                Terminate
+              </button>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </div>
   );
