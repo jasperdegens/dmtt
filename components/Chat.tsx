@@ -36,6 +36,8 @@ import { SwitchActions } from "./SwitchActions.tsx";
 import { RevealCard } from "./RevealCard.tsx";
 import { MessageList } from "./chat/MessageList.tsx";
 import { StepIndicator } from "./chat/StepIndicator.tsx";
+import { BusyLabel } from "./BusyLabel.tsx";
+import { WorldIcon } from "./WorldIcon.tsx";
 import type { ChatLink, ChatMessage } from "./chat/types.ts";
 import { usePirate } from "./scene/PirateContext.tsx";
 
@@ -598,7 +600,8 @@ export function Chat() {
 									setLivePanel((p) => (p === "checkin" ? "none" : "checkin"))
 								}
 							>
-								✋ Check in
+								<WorldIcon />
+									<span>Check in</span>
 							</button>
 							<button
 								type="button"
@@ -677,10 +680,11 @@ export function Chat() {
 							<button
 								type="button"
 								disabled={arming}
+								aria-busy={arming}
 								onClick={arm}
 								className="btn btn--gold w-full"
 							>
-								{arming ? "Sealin' the pact…" : "⚓ Arm the pact"}
+								{arming ? <BusyLabel>Sealin' the pact</BusyLabel> : "⚓ Arm the pact"}
 							</button>
 						) : null}
 					</>

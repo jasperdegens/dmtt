@@ -15,6 +15,9 @@ build/
 # DMTT switch state — holds the sealed tlock ladders
 /data/
 
+# local partner/submission writeups
+PARTNER_TECH_WRITEUP.md
+
 # large source media
 public/proRes/
 

@@ -9,10 +9,10 @@
 // wires it to the arm memo/amount. A clearly-labelled, env-gated dev mock keeps the chat
 // flow walkable on machines without a device.
 
-import { hederaDerivationPath } from "./ledgerDmkHedera.ts";
 import { useLedgerHedera } from "./useLedgerHedera.ts";
 import type { AccountId, TxId } from "@/lib/types.ts";
 import { armMemo } from "@/lib/types.ts";
+import { BusyLabel } from "./BusyLabel.tsx";
 
 export interface LedgerSigned {
   armTxId: TxId;
@@ -68,10 +68,10 @@ export function LedgerSignCard({
       ) : null}
 
       {ledger.account ? (
-        <p className="compose__note">
-          Ledger account {ledger.account} · {hederaDerivationPath()} · key{" "}
-          {ledger.pubKey?.slice(0, 16)}…
-        </p>
+        <div className="ledger-account" aria-label="Connected Ledger account">
+          <span className="ledger-account__label">Ledger account</span>
+          <code className="ledger-account__value">{ledger.account}</code>
+        </div>
       ) : null}
 
       {ledger.prompt ? (
@@ -91,10 +91,15 @@ export function LedgerSignCard({
         <button
           type="button"
           disabled={!ledger.supported || busy}
+          aria-busy={ledger.phase === "connecting"}
           onClick={() => void ledger.connect()}
           className="btn btn--gold w-full"
         >
-          {ledger.phase === "connecting" ? "Connectin’…" : "Connect yer Ledger & find account"}
+          {ledger.phase === "connecting" ? (
+            <BusyLabel>Connectin’</BusyLabel>
+          ) : (
+            "Connect yer Ledger & find account"
+          )}
         </button>
       ) : null}
 
@@ -102,10 +107,15 @@ export function LedgerSignCard({
         <button
           type="button"
           disabled={busy}
+          aria-busy={ledger.phase === "signing"}
           onClick={() => void sign()}
           className="btn btn--gold w-full"
         >
-          {ledger.phase === "signing" ? "Waitin’ on yer device…" : `Sign the ${fundingHbar} ℏ arm transfer`}
+          {ledger.phase === "signing" ? (
+            <BusyLabel>Waitin’ on yer device</BusyLabel>
+          ) : (
+            `Sign the ${fundingHbar} ℏ arm transfer`
+          )}
         </button>
       ) : null}
 

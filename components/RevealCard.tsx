@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { revealMemo, revealDefaults } from "@/lib/reveal.ts";
 import type { SwitchView, CapsulePublishedEvent } from "@/lib/types.ts";
+import { BusyLabel } from "./BusyLabel.tsx";
 import { usePirate } from "./scene/PirateContext.tsx";
 
 /** The published capsule from the (one) CAPSULE_PUBLISHED event, or null pre-release. */
@@ -94,8 +95,14 @@ export function RevealCard({ view }: { view: SwitchView }) {
       ) : (
         <>
           {text === null && downloadUrl === null ? (
-            <button type="button" disabled={busy} onClick={reveal} className="btn btn--gold w-full">
-              {busy ? "Haulin’ open the chest…" : "⚱ Reveal the memo"}
+            <button
+              type="button"
+              disabled={busy}
+              aria-busy={busy}
+              onClick={reveal}
+              className="btn btn--gold w-full"
+            >
+              {busy ? <BusyLabel>Haulin’ open the chest</BusyLabel> : "⚱ Reveal the memo"}
             </button>
           ) : null}
 

@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { encrypt, hashCiphertext } from "@/lib/crypto.ts";
 import { FAST_PATH_MAX_BYTES, type Hex64 } from "@/lib/types.ts";
+import { BusyLabel } from "./BusyLabel.tsx";
 import { usePirate } from "./scene/PirateContext.tsx";
 
 // Storage ceiling: HFS files cap at 1 MB and the HCS large path is scoped to ~1 MB
@@ -116,8 +117,14 @@ export function MemoCard({
 
       {error ? <p className="compose__err">{error}</p> : null}
 
-      <button type="button" disabled={busy} onClick={capture} className="btn btn--gold w-full">
-        {busy ? "Sealin' the chest…" : "Seal it ⚓"}
+      <button
+        type="button"
+        disabled={busy}
+        aria-busy={busy}
+        onClick={capture}
+        className="btn btn--gold w-full"
+      >
+        {busy ? <BusyLabel>Sealin' the chest</BusyLabel> : "Seal it ⚓"}
       </button>
     </div>
   );

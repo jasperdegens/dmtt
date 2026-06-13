@@ -10,15 +10,15 @@ The agent has money and infrastructure authority, but not the secret. It can cre
 
 1. **Encrypts a memo/file locally.** The plaintext never leaves the browser.
 2. **Funds the DMTT agent.** The user proves personhood with World ID and signs a Ledger-backed Hedera transfer that prepays the agent for storage, scheduling, monitoring, and the release bounty.
-3. **Arms the monitor.** The DMTT agent mirror-verifies the payment, creates the Hedera topic/storage/schedule, and keeps the private unreleased time-lock capsules.
-4. **Accepts check-ins.** Each postponement needs a fresh World ID proof from the same human; the DMTT agent advances the schedule only after verifying it.
+3. **Arms the monitor.** The DMTT agent mirror-verifies the payment, creates the Hedera topic/storage, and creates a scheduled transaction that will post `RELEASE_AUTHORIZED` at the deadline.
+4. **Accepts check-ins.** If the user checks in before that scheduled transaction fires, the agent replaces the live trigger: it creates a new scheduled transaction for the next deadline, then cancels the old one.
 5. **Releases on silence.** If the deadline passes, Hedera posts `RELEASE_AUTHORIZED`; the monitoring agent publishes the right capsule and pays the bounty.
 6. **Cancels if needed.** The user signs a Ledger-backed cancel transfer; the agent mirror-verifies it, deletes the schedule, and shreds the unreleased ladder.
 
 ## How partner tech is used
 
 - **Hedera** — the agent's public clock, audit trail, and payment rail.
-  - Hedera Schedule Service posts `RELEASE_AUTHORIZED` at the deadline.
+  - Hedera Schedule Service is the deadline mechanism: arm creates one scheduled transaction for `RELEASE_AUTHORIZED`; each timely check-in replaces it with a new scheduled transaction for the next deadline.
   - Hedera Consensus Service stores ordered switch events (`ARMED`, `CHECKIN_VERIFIED`, `CAPSULE_PUBLISHED`, `CANCELLED`).
   - HFS stores small ciphertexts; HCS chunking handles larger ciphertexts more cheaply.
   - Mirror Node reads verify arm/cancel transfers and reconstruct public state.

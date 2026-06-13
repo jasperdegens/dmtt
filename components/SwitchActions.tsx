@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { cancelMemo } from "@/lib/types.ts";
 import type { SwitchView } from "@/lib/types.ts";
+import { BusyLabel } from "./BusyLabel.tsx";
 import { useLedgerHedera } from "./useLedgerHedera.ts";
 import { usePirate } from "./scene/PirateContext.tsx";
 
@@ -106,7 +107,9 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
           {ledger.supported ? (
             <div className="space-y-2.5">
               {ledger.account ? (
-                <p className="compose__note">Ledger account {ledger.account}</p>
+                <p className="compose__note">
+                  Ledger account <span className="acct">{ledger.account}</span>
+                </p>
               ) : null}
               {ledger.prompt ? (
                 <p className="compose__lead flex items-center gap-2">
@@ -123,18 +126,30 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
               {ledger.phase === "idle" || ledger.phase === "connecting" ? (
                 <button
                   disabled={deviceBusy}
+                  aria-busy={ledger.phase === "connecting"}
                   onClick={() => void ledger.connect()}
                   className="btn btn--danger w-full"
                 >
-                  {ledger.phase === "connecting" ? "Connectin’…" : "Connect yer Ledger & find account"}
+                  {ledger.phase === "connecting" ? (
+                    <BusyLabel>Connectin’</BusyLabel>
+                  ) : (
+                    "Connect yer Ledger & find account"
+                  )}
                 </button>
               ) : (
                 <button
                   disabled={deviceBusy || busy}
+                  aria-busy={ledger.phase === "signing" || busy}
                   onClick={() => void deviceCancel()}
                   className="btn btn--danger w-full"
                 >
-                  {ledger.phase === "signing" ? "Signin’ on device…" : "Sign cancel on Ledger"}
+                  {ledger.phase === "signing" ? (
+                    <BusyLabel>Signin’ on device</BusyLabel>
+                  ) : busy ? (
+                    <BusyLabel>Standin’ down</BusyLabel>
+                  ) : (
+                    "Sign cancel on Ledger"
+                  )}
                 </button>
               )}
             </div>
@@ -158,10 +173,11 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
               />
               <button
                 disabled={busy}
+                aria-busy={busy}
                 onClick={() => void manualCancel()}
                 className="btn btn--danger w-full"
               >
-                {busy ? "Standin’ down…" : "Honor cancel now"}
+                {busy ? <BusyLabel>Standin’ down</BusyLabel> : "Honor cancel now"}
               </button>
             </div>
           </details>

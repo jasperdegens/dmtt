@@ -198,6 +198,37 @@ body.scene-locked {
   opacity: 0.5;
   cursor: default;
 }
+.btn[aria-busy="true"]:disabled {
+  opacity: 0.86;
+  cursor: progress;
+}
+.btn-busy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55em;
+  min-width: 0;
+}
+.bounce-dots {
+  display: inline-grid;
+  grid-template-columns: repeat(3, 0.34em);
+  gap: 0.2em;
+  width: calc(3 * 0.34em + 2 * 0.2em);
+  align-items: end;
+}
+.bounce-dots > span {
+  width: 0.34em;
+  height: 0.34em;
+  border-radius: 999px;
+  background: currentColor;
+  animation: bounceDot 0.72s ease-in-out infinite;
+}
+.bounce-dots > span:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.bounce-dots > span:nth-child(3) {
+  animation-delay: 0.24s;
+}
 .btn--gold {
   color: #160d04;
   background: #d69722;
@@ -301,36 +332,49 @@ body.scene-locked {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 28%, transparent);
 }
 
-/* ============================== CHIPS / BADGES ============================== */
+/* ============================== STATUS STAMP ============================== */
+/* The pact's status reads as an inked placard stamped on the ship's manifest — a solid-
+   ruled tag (NOT a soft rounded pill), with embossed wide-tracked caps. Each state sets its
+   own accent (a full solid border + the text) over an inky fill: green = live, gold =
+   released, ashen = stood down. No status lamp and no glow. The live/loading states convey
+   motion by breathing the WHOLE tag (badgePulse); terminal states sit still. */
 .badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   font-family: var(--font-caps);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 0.66rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  border: 1px solid transparent;
+  letter-spacing: 0.18em;
+  font-size: 0.6rem;
+  line-height: 1;
+  padding: 0.42em 0.72em 0.4em;
+  color: var(--cream);
+  background: rgba(18, 18, 20, 0.9);
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
 }
 .badge--active {
-  background: rgba(20, 60, 40, 0.7);
-  color: #7ce0a0;
-  border-color: color-mix(in srgb, #5bd06a 40%, transparent);
+  color: #7fe3a2;
+  background: rgba(11, 38, 25, 0.94);
+  animation: badgePulse 2.4s ease-in-out infinite; /* the whole tag breathes — it's live */
 }
 .badge--released {
-  background: rgba(72, 52, 12, 0.7);
   color: var(--gold-bright);
-  border-color: color-mix(in srgb, var(--gold) 50%, transparent);
+  background: rgba(52, 37, 10, 0.95);
 }
 .badge--cancelled {
-  background: rgba(40, 30, 30, 0.7);
   color: color-mix(in srgb, var(--cream) 60%, transparent);
-  border-color: color-mix(in srgb, var(--cream) 20%, transparent);
+  background: rgba(34, 26, 26, 0.92);
 }
 .badge--loading {
-  background: rgba(30, 40, 52, 0.7);
-  color: color-mix(in srgb, var(--cream) 62%, transparent);
-  border-color: color-mix(in srgb, var(--gold) 22%, transparent);
+  color: color-mix(in srgb, var(--cream) 64%, transparent);
+  background: rgba(26, 36, 48, 0.92);
+  animation: badgePulse 1.4s ease-in-out infinite;
+}
+@keyframes badgePulse {
+  50% {
+    opacity: 0.62;
+  }
 }
 
 /* gold inline links (HashScan, return URLs) */
@@ -342,6 +386,50 @@ body.scene-locked {
 }
 .gold-link:hover {
   color: #fff;
+}
+/* On the captain's parchment bubbles, gold-on-cream is unreadable — links there switch to
+   the deep-red ink (still clearly a link via the underline) for proper contrast. */
+.msg--cap .gold-link {
+  color: var(--red-deep);
+  text-decoration-color: color-mix(in srgb, var(--red-deep) 55%, transparent);
+}
+.msg--cap .gold-link:hover {
+  color: var(--red-extra-deep);
+}
+
+/* readable account / key ids — the quiet note colour rendered bare 0.0.x numbers nearly
+   invisible, so ids opt into a brighter, upright monospace. */
+.acct {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-style: normal;
+  font-size: 0.92em;
+  letter-spacing: 0.01em;
+  color: var(--cream-bright);
+}
+
+.ledger-account {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.ledger-account__label {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: color-mix(in srgb, var(--cream) 76%, transparent);
+}
+.ledger-account__value {
+  display: block;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.84rem;
+  font-style: normal;
+  line-height: 1.35;
+  color: var(--cream-bright);
+  border: 1px solid color-mix(in srgb, var(--gold) 20%, transparent);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  background: rgba(0, 0, 0, 0.25);
 }
 
 /* ============================== THE SCENE ============================== */
@@ -718,18 +806,25 @@ body.scene-locked {
 }
 .chat-shell {
   flex: 0 0 auto;
-  min-height: var(--chat-min-h);
+  /* A FIXED height (the old min, now also the max) so a long transcript scrolls INSIDE
+     the bubble's log instead of growing the bubble past the viewport (which clipped both
+     ends). Capped to the viewport height with a margin so it never overflows on short
+     screens. */
+  height: var(--chat-min-h);
+  max-height: calc(100dvh - 2.5rem);
   display: flex;
   pointer-events: none;
 }
 .chat-shell > .bubble {
   flex: 1 1 auto;
-  min-height: var(--chat-min-h);
+  min-height: 0; /* let the inner .bubble__log own the scroll */
   pointer-events: auto;
 }
-.chat-shell:has(.bubble--collapsed),
-.chat-shell > .bubble.bubble--collapsed {
-  min-height: 0;
+/* collapsed: the bubble shrinks to just its header — release the fixed height so the dock
+   column hugs the header rather than leaving a tall empty gap below it. */
+.chat-shell:has(.bubble--collapsed) {
+  height: auto;
+  max-height: none;
 }
 .dock__bottom {
   position: fixed;
@@ -879,6 +974,18 @@ body.scene-locked {
 @keyframes pulse {
   50% {
     opacity: 0.35;
+  }
+}
+@keyframes bounceDot {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0) scale(0.88);
+    opacity: 0.58;
+  }
+  40% {
+    transform: translateY(-0.32em) scale(1);
+    opacity: 1;
   }
 }
 
@@ -1358,9 +1465,9 @@ body.scene-locked {
 }
 .compose__note {
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-style: italic;
-  color: color-mix(in srgb, var(--cream) 55%, transparent);
+  color: color-mix(in srgb, var(--cream) 72%, transparent);
 }
 .compose__err {
   margin: 0;
@@ -1476,8 +1583,8 @@ body.scene-locked {
   font-family: var(--font-caps);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.55rem;
-  color: color-mix(in srgb, var(--cream) 55%, transparent);
+  font-size: 0.6rem;
+  color: color-mix(in srgb, var(--cream) 72%, transparent);
 }
 .status-grid b {
   font-family: var(--font-display);
@@ -1490,6 +1597,9 @@ body.scene-locked {
 .peek > summary {
   cursor: pointer;
   list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-family: var(--font-caps);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -1498,6 +1608,32 @@ body.scene-locked {
 }
 .peek > summary::-webkit-details-marker {
   display: none;
+}
+/* an explicit expand affordance — a boxed "+" that flips to "−" when open, so the row
+   clearly reads as something you can open (the audit trail, the cancel paste, the memo). */
+.peek > summary::before {
+  content: "+";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1em;
+  height: 1.1em;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+  border-radius: 4px;
+  font-family: var(--font-ui);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--gold-bright);
+  background: color-mix(in srgb, #000 25%, transparent);
+}
+.peek[open] > summary::before {
+  content: "−";
+}
+.peek > summary:hover::before {
+  border-color: var(--gold-bright);
+  color: #fff;
 }
 .peek[open] > summary {
   margin-bottom: 0.4rem;
@@ -1576,6 +1712,7 @@ body.scene-locked {
   }
   .chat-shell {
     flex: 1 1 auto;
+    height: auto; /* portrait: flex to fill the bounded dock; the log still scrolls */
     min-height: 0;
     margin-top: 0;
     max-height: none;
@@ -1661,7 +1798,10 @@ body.scene-locked {
   .watch__dot,
   .pirate-tag__dot,
   .msg__caret,
-  .typing span {
+  .typing span,
+  .bounce-dots > span,
+  .badge--active,
+  .badge--loading {
     animation: none !important;
   }
   .ship {
