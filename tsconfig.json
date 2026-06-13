@@ -13,7 +13,27 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "types": ["node"]
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": false,
+    "jsx": "preserve",
+    "allowJs": true,
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "types": ["node"],
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
-  "include": ["lib/**/*.ts"]
+  "include": [
+    "lib/**/*.ts",
+    "watcher/**/*.ts",
+    "scripts/**/*.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "next-env.d.ts",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next"]
 }
