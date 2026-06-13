@@ -24,7 +24,6 @@ import {
   createHedera,
   parseOperatorKey,
   selectMedium,
-  splitChunks,
   HCS_CHUNK_BYTES,
 } from "../lib/hedera.ts";
 import type { ReleaseAuthorizedEvent, SwitchEvent } from "../lib/types.ts";

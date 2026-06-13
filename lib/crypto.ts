@@ -111,6 +111,12 @@ const AES_GCM = "AES-GCM";
 const IV_BYTES = 12; // 96-bit nonce — the AES-GCM standard.
 const KEY_BYTES = 32; // AES-256.
 
+// WebCrypto's BufferSource (TS 5.7+ lib.dom) rejects Uint8Array<ArrayBufferLike>;
+// ours are always ArrayBuffer-backed. Narrow at the WebCrypto call boundary.
+function bs(u: Uint8Array): BufferSource {
+  return u as unknown as BufferSource;
+}
+
 /** Encrypt plaintext under a fresh random K. Returns the ciphertext (IV ‖ body) and K.
  *  CLIENT ONLY — K is the bedrock secret; never persist it, never send it to the server. */
 export async function encrypt(
@@ -129,7 +135,7 @@ export async function encrypt(
     ["encrypt"],
   );
   const body = new Uint8Array(
-    await crypto.subtle.encrypt({ name: AES_GCM, iv }, cryptoKey, plaintext),
+    await crypto.subtle.encrypt({ name: AES_GCM, iv }, cryptoKey, bs(plaintext)),
   );
 
   // Layout: IV ‖ AES-GCM(plaintext+tag). The IV is public; the seal is K.
@@ -149,13 +155,13 @@ export async function decrypt(
   const body = ciphertext.slice(IV_BYTES);
   const cryptoKey = await crypto.subtle.importKey(
     "raw",
-    key,
+    bs(key),
     { name: AES_GCM },
     false,
     ["decrypt"],
   );
   return new Uint8Array(
-    await crypto.subtle.decrypt({ name: AES_GCM, iv }, cryptoKey, body),
+    await crypto.subtle.decrypt({ name: AES_GCM, iv: bs(iv) }, cryptoKey, bs(body)),
   );
 }
 
