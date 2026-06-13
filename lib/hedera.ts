@@ -24,6 +24,8 @@ import {
   FileCreateTransaction,
   FileContentsQuery,
   KeyList,
+  TransferTransaction,
+  Hbar,
 } from "@hiero-ledger/sdk";
 
 import {
@@ -137,10 +139,11 @@ export async function mirrorVerifyTransfer(
       ? null
       : Buffer.from(tx.memo_base64, "base64").toString("utf8");
   // (3) a transfers[] debit from the expected account proves the device signed.
-  const debited =
+  const debitAmount =
     debitAccountId == null
       ? null
-      : (tx.transfers ?? []).some((t) => t.account === debitAccountId && t.amount < 0);
+      : (tx.transfers ?? []).find((t) => t.account === debitAccountId && t.amount < 0)?.amount ?? null;
+  const debited = debitAmount == null ? false : debitAmount < 0;
 
   const checks = {
     success: tx.result === "SUCCESS", //                                    (1)
@@ -156,6 +159,7 @@ export async function mirrorVerifyTransfer(
     checks,
     transactionId: tx.transaction_id,
     consensusTimestamp: tx.consensus_timestamp,
+    debitAmountTinybar: debitAmount,
   };
 }
 
@@ -437,4 +441,15 @@ export const hedera: HederaSurface = {
 };
 
 /** Re-export for the file route / callers that want the creds gate. */
+export async function payHbar(toAccountId: string, amountHbar: number, memo?: string): Promise<TxId> {
+  const { client, operatorId } = operator();
+  const tx = new TransferTransaction()
+    .addHbarTransfer(operatorId, Hbar.fromTinybars(Math.round(-amountHbar * 100_000_000)))
+    .addHbarTransfer(AccountId.fromString(toAccountId), Hbar.fromTinybars(Math.round(amountHbar * 100_000_000)));
+  if (memo) tx.setTransactionMemo(memo);
+  const resp = await tx.execute(client);
+  await resp.getReceipt(client);
+  return resp.transactionId.toString();
+}
+
 export { hasHederaCreds };

@@ -12,7 +12,7 @@
 // failure (e.g. missing creds, mirror hiccup) is logged and the loop keeps idling.
 
 import { store } from "../lib/store.ts";
-import { hedera, hasHederaCreds } from "../lib/hedera.ts";
+import { hedera, hasHederaCreds, payHbar } from "../lib/hedera.ts";
 import { env } from "../lib/env.ts";
 import { pollOnce, type ReleaseDeps } from "./release.ts";
 import type { Switch } from "../lib/types.ts";
@@ -70,16 +70,17 @@ async function composeBulletin(sw: Switch, _seq: number): Promise<string> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// payBounty — best-effort stub. Real device-less CryptoTransfer is Phase 5.
+// payBounty — best-effort agent CryptoTransfer (Phase 5).
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function payBounty(sw: Switch): Promise<void> {
-  // Phase 5 wires a real agent→finder CryptoTransfer of part of FUNDING. For now
-  // log intent; handleReleaseAuthorized swallows any throw (shirk is a residual).
-  console.log(
-    `[watcher] (stub) bounty payout for ${sw.topicId} — ` +
-      `funding ${sw.policy.terms.fundingHbar} ℏ; real transfer lands in Phase 5.`,
-  );
+  const recipient = env("DMTT_BOUNTY_ACCOUNT_ID") ?? sw.ledgerAccountId;
+  const configured = Number(env("DMTT_BOUNTY_HBAR") ?? "0");
+  const amount = Number.isFinite(configured) && configured > 0
+    ? configured
+    : Math.max(0.01, Math.min(1, sw.policy.terms.fundingHbar * 0.05));
+  const txId = await payHbar(recipient, amount, `DMTT:BOUNTY:${sw.topicId}`);
+  console.log(`[watcher] bounty paid ${amount} ℏ to ${recipient}: ${txId}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

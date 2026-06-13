@@ -10,6 +10,7 @@ import { headers } from "next/headers";
 
 import { StatusCard } from "@/components/StatusCard.tsx";
 import { RevealCard } from "@/components/RevealCard.tsx";
+import { SwitchActions } from "@/components/SwitchActions.tsx";
 import type { SwitchView } from "@/lib/types.ts";
 
 async function loadView(topicId: string): Promise<SwitchView | null> {
@@ -46,7 +47,10 @@ export default async function SwitchPage({
       <StatusCard topicId={topicId} />
 
       {view ? (
-        <RevealCard view={view} />
+        <>
+          <SwitchActions view={view} />
+          <RevealCard view={view} />
+        </>
       ) : (
         <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
           <h2 className="text-lg font-semibold">The memo</h2>

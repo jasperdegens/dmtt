@@ -397,6 +397,8 @@ export interface MirrorVerifyResult {
   };
   transactionId?: TxId;
   consensusTimestamp?: string;
+  /** Negative tinybar amount debited from opts.debitAccountId, when requested. */
+  debitAmountTinybar?: number | null;
   /** "not_found" | "empty" when the tx couldn't be parsed. */
   reason?: string;
 }
