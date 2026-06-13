@@ -205,6 +205,29 @@ body.scene-locked {
 .btn--danger:hover:not(:disabled) {
   background: color-mix(in srgb, var(--red) 86%, #fff);
 }
+/* a larger primary button (the live "Check in") */
+.btn--lg {
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  padding: 0.95rem 1.2rem;
+  border-radius: 9px;
+}
+/* a secondary, outline-danger button (the live "Terminate") — destructive but quiet */
+.btn--danger-ghost {
+  color: color-mix(in srgb, var(--red) 92%, #fff);
+  background: transparent;
+  border-color: color-mix(in srgb, var(--red) 55%, transparent);
+}
+.btn--danger-ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--red) 16%, transparent);
+  border-color: var(--red);
+  color: #fdece2;
+}
+.btn--danger-ghost.is-on {
+  background: var(--red);
+  border-color: #5e1b14;
+  color: #fdece2;
+}
 
 /* segmented tab buttons (memo note/file, interval units) */
 .tab {
@@ -829,6 +852,23 @@ body.scene-locked {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+/* the ACTIVE switch's bottom action bar — pinned under the log, never scrolls away.
+   "Check in" flexes to fill (the large primary); "Terminate" stays compact beside it. */
+.bubble__actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  border-top: 2px solid var(--gold);
+  background: var(--surface);
+}
+.bubble__actions-primary {
+  flex: 1 1 auto;
+}
+.bubble__actions-primary.is-on {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 45%, transparent);
 }
 
 /* compact step ladder, shown in the bubble head */

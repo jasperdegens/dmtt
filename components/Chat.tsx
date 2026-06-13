@@ -153,6 +153,10 @@ export function Chat() {
   const [view, setView] = useState<SwitchView | null>(null);
   const [now, setNow] = useState<number>(() => Date.now());
 
+  // The ACTIVE switch's bottom action bar drives which on-demand card is open beneath
+  // the status: the World check-in gate, the cancel ceremony, or neither.
+  const [livePanel, setLivePanel] = useState<"none" | "checkin" | "cancel">("none");
+
   // Keep the latest context in a ref so sequential dispatches never read a stale value.
   const ctxRef = useRef<ChatContext>(context);
   useEffect(() => {
@@ -273,6 +277,7 @@ export function Chat() {
       pushAssistant(
         `Still breathin', I see — good on ye. I've shoved the reckonin' back to ${new Date(result.newDeadline).toUTCString()} (signal ${result.seq}, rung ${result.liveIdx}) an' burned the nearest rung. Back to me watch.`,
       );
+      setLivePanel("none"); // collapse the gate back to the action bar
       void refresh();
     },
     [pushAssistant, refresh],
@@ -281,6 +286,7 @@ export function Chat() {
     pushAssistant(
       "Done — pact stood down. I've torn up the schedule an' shredded the ladder to fish bait. Yer secret sinks with me; nothin' will ever be loosed.",
     );
+    setLivePanel("none");
     void refresh();
   }, [pushAssistant, refresh]);
 
@@ -491,6 +497,30 @@ export function Chat() {
             one place an artifact is captured and the one place the live switch is acted on. */}
         <div className="bubble__cards">{renderActiveCard()}</div>
       </div>
+
+      {/* The ACTIVE switch's bottom action bar: a large primary "Check in" (summons the
+          World check-in gate) and a secondary "Terminate" (summons the cancel ceremony).
+          Each toggles its card open/closed above; both vanish once the switch is terminal. */}
+      {live && view && view.status === "ACTIVE" ? (
+        <div className="bubble__actions">
+          <button
+            type="button"
+            className={`btn btn--gold btn--lg bubble__actions-primary${livePanel === "checkin" ? " is-on" : ""}`}
+            aria-pressed={livePanel === "checkin"}
+            onClick={() => setLivePanel((p) => (p === "checkin" ? "none" : "checkin"))}
+          >
+            ✋ Check in
+          </button>
+          <button
+            type="button"
+            className={`btn btn--danger-ghost${livePanel === "cancel" ? " is-on" : ""}`}
+            aria-pressed={livePanel === "cancel"}
+            onClick={() => setLivePanel((p) => (p === "cancel" ? "none" : "cancel"))}
+          >
+            Terminate
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 
@@ -506,13 +536,20 @@ export function Chat() {
       return (
         <>
           <StatusCard topicId={topicId} view={view} now={now} />
+          {/* On an ACTIVE switch the check-in gate / cancel ceremony are summoned on
+              demand by the bottom action bar (below) — not shown by default. */}
           {view && view.status === "ACTIVE" ? (
             <>
-              <CheckinCard view={view} onCheckedIn={onCheckedIn} />
-              <SwitchActions view={view} onRefresh={onCancelled} />
+              {livePanel === "checkin" ? (
+                <CheckinCard view={view} onCheckedIn={onCheckedIn} />
+              ) : null}
+              {livePanel === "cancel" ? (
+                <SwitchActions view={view} onRefresh={onCancelled} />
+              ) : null}
             </>
           ) : null}
-          {view ? <RevealCard view={view} /> : null}
+          {/* Reveal only matters once terminal (released → reveal; cancelled → notice). */}
+          {view && view.status !== "ACTIVE" ? <RevealCard view={view} /> : null}
         </>
       );
     }
