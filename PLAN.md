@@ -9,7 +9,7 @@ This plan is written so each phase can be executed as an **agent team** — one 
 - **Contracts-first parallelism.** Phase 2 freezes every interface; after that, workstreams share *only* the contracts and run independently against mocks. Contract changes after the freeze require a human decision.
 - **Every phase ends with a runnable verification, not code-complete.** Each workstream brief carries a `Verify:` block — command + observable pass criteria, *including negative tests*. A phase closes only when its verifications pass. Gates (G0 / M1 / M2) are human-run, end-to-end, on testnet.
 - **The human is the scarce resource for exactly four things:** device/phone ceremonies, workshops/booth, gate sign-off, demo/video. Everything else is delegated. Core path (executors, keys, watcher, ceremonies) merges only with review; UI lands looser.
-- **No scope cuts.** Chat shell is core architecture (the single mutating surface) — it lands in wave 1. Direct-funding arm + device-signed cancel, release-bounty payment (+ optional per-check-in service fee), LLM bulletin, ≤1 MB file path: all in. ProveKit/watchtower stay on their stretch gates after the UI overhaul, with one rule: **nothing touches the live-demo core path after Phase 8.**
+- **No scope cuts.** Chat shell is core architecture (the single mutating surface) — it lands in wave 1. Direct-funding arm + device-signed cancel, release-bounty payment (+ optional per-check-in service fee), LLM bulletin, ≤1 MB file path: all in. ProveKit/watchtower stay on their stretch gates after the UI overhaul and polish, with one rule: **nothing touches the live-demo core path after Phase 8.**
 - **Sleep is scheduled** — 4 h after M1, with an overnight agent batch assigned before sleeping and verified on wake.
 - **Toolchain: pnpm + Node everywhere.** No Bun anywhere in the repo (gRPC/http2 risk — see EVALUATION N1).
 
@@ -105,27 +105,30 @@ Assigned before sleeping: README skeleton + trust tables (incl. **delay / shirk 
 - **SPA continuity after arm.** Once the chat flow arms a switch and receives the topic ID, the app should stay in the same chat interface, post a chat bubble containing the return URL with the topic included, automatically start watching that topic, and start the countdown. A user who opens the topic URL later should land in the same chat interface with the existing switch loaded, the topic watcher active, and the countdown already running.
 - **Verify:** scripted chat session arms a switch using only chat bubbles/chips/free text; after arm, the same page shows the topic link and live countdown without a full-page handoff; reloading/opening the topic URL restores the chat interface with the watcher and countdown active; check-in and cancel are reachable from chat and from `/s/[topicId]`; prompt-injection test still cannot skip required artifacts; LLM-offline path still works.
 
-## Phase 8 · T29–T32 — Pirate-themed UI overhaul
+## Phase 8 · T29–T33 — Pirate-themed UI overhaul + animation polish
 
-- **Import pirate-themed visual assets and propose a full design overhaul.** Establish a cohesive visual direction for Dead Men Tell Tales: nautical/pirate map motifs, sealed letters, treasure/dead-man iconography, readable dark surfaces, and sponsor-safe professional polish. Assets must be real imported/generated bitmap/SVG assets, not only gradients.
+- **Import pirate-themed visual assets and propose a full design overhaul.** Establish a cohesive visual direction for Dead Men Tell Tales: nautical/pirate map motifs, sealed letters, treasure/dead-man iconography, readable dark surfaces, and sponsor-safe professional polish. Assets must be real imported/generated bitmap/video assets, not only gradients.
+- **Pirate character animation videos:** import `.webm` clips for exactly these states: `idle`, `waiting`, `thinking`, `talking`, `encrypting` (putting a file in a chest), and `decrypting`. Add a small UI state machine that maps chat/action states to those clips: talking while the app streams or renders a question/card; waiting while user input is needed; thinking during async work; encrypting during local encryption, storage upload, ladder mint, and arm submission; decrypting during capsule open + AES reveal; idle when the flow is stable. Provide static poster/reduced-motion fallbacks for each clip.
+- **Animated background layers:** use a darkened ship image as the main background and occasionally illuminate it with a lightning effect. Add animated waves covering the lower quarter of the viewport, darkened enough to keep foreground UI readable, with lightning illumination synced to the ship. Render two wave layers: one behind the ship and one in the foreground in front of lower content, with offset start times so they do not move in lockstep.
 - **Apply the overhaul after core flows are stable.** Redesign the chat shell, switch status/reveal page, buttons, empty/error states, HashScan links, QR/check-in/cancel surfaces, and release state. Preserve all security copy that matters: plaintext never leaves browser, `K` is discarded, capsule publishes only after release.
-- **Verify:** desktop and mobile screenshots for arm, active, check-in, cancelled, released/reveal states; no overlapping text; all buttons fit; zero console errors; flow still passes the M2 checklist.
+- **Minimum action timing:** every scripted chat step and action should have a minimum visible duration of 2 seconds so the animation and chat feedback can read properly. Fast local operations such as encrypting text, preparing the arm payload, starting the topic watcher, or decrypting a capsule should still show a working state and matching animation for at least 2 seconds. Naturally slower operations should not add extra delay beyond their real completion time.
+- **Verify:** screenshot verification is required: desktop and mobile screenshots for arm, active, check-in, cancelled, released/reveal, and error states; include frames with normal darkness and lightning illumination. Check that waves occupy only the lower quarter, do not hide controls or text, both wave layers are visible with offset timing, character videos are framed and nonblank, all buttons fit, no text overlaps, zero console errors, reduced-motion fallbacks render, and the flow still passes the M2 checklist.
 
-## Phase 9 · T32–T33 — Stretch gates
+## Phase 9 · T33–T34 — Stretch gates
 
-- **ProveKit gate:** only if M2 and Phase 8 are green → 1-h agent spike (compile Noir circuit, prove 1 KB SHA-256 preimage, time it). **Verify to proceed:** browser-feasible proving time + status-page verification. Scope ceiling: text ≤1 KB, one predicate. **Land by T+33 or drop without regret.**
+- **ProveKit gate:** only if M2 and Phase 8 are green → 1-h agent spike (compile Noir circuit, prove 1 KB SHA-256 preimage, time it). **Verify to proceed:** browser-feasible proving time + status-page verification. Scope ceiling: text ≤1 KB, one predicate. **Land by T+34 or drop without regret.**
 - **Watchtower gate:** only if everything is green → ~50-line independent verifier + 2-of-2 schedule-admin KeyList **on a separate demo switch only** (live-demo switch keeps agent-only admin). **Verify:** compromised-backend simulation — `ScheduleDelete` without the watchtower co-sig fails on-chain.
-- **T+33 health check — defer order (not scope cut):** watchtower → ProveKit → narration flourishes. Core invariants never deferred.
+- **T+34 health check — defer order (not scope cut):** watchtower → ProveKit → narration flourishes. Core invariants never deferred.
 
-## Phase 10 · T33–T34 — Submission assets
+## Phase 10 · T34–T35 — Submission assets
 
 - **Agents draft, human edits:** README (why each sponsor is structural; keys/trust table; **delay / shirk / stale-read** residuals stated honestly; corrected-claims notes) · Ledger feedback doc (app-hedera gap list with sources, no DMK Hedera signer, Agent Stack preview feedback) · submission texts + track checkboxes (Hedera AI & Agentic Payments · Hedera No Solidity · World Track B · Ledger).
-- **Human:** record the ≤5-min video during a T+33 rehearsal (**must show the agent's autonomous Hedera payment**); edit ≤1 h.
+- **Human:** record the ≤5-min video during a T+34 rehearsal (**must show the agent's autonomous Hedera payment**); edit ≤1 h.
 - **Verify:** README claims cross-checked against code by a **fresh-context review agent** (catches drift); video shows the payment tx on HashScan; commit history readable (no giant squashes).
 
-## Phase 11 · T34–T36 — Demo engineering, freeze, submit
+## Phase 11 · T35–T36 — Demo engineering, freeze, submit
 
-- **Core freeze T+32 · UI/content freeze T+34 · submit T+35.** Never T+36.
+- **Core freeze T+32 · UI/content freeze T+35 · submit T+35.** Never T+36.
 - **Verify = two full rehearsals** (5-min terms, 60 s capsule) including failure drills: venue Wi-Fi → phone hotspot · World App flake → staging/sim toggle · Ledger flake → pre-armed backup switch · testnet outage → rehearsal screen recording. The demo is not "verified" until one rehearsal is touch-free.
 - **Judging-table prep:** pre-arm a sacrificial switch ~10 min before the slot so a real release fires *during* judging; pre-cache drand signatures for its rounds; operator balance check (the schedule's execution-time payer must be funded); spare funded accounts ready.
 
