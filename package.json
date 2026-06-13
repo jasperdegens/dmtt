@@ -12,7 +12,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --test-reporter=spec \"lib/**/*.test.ts\" \"watcher/**/*.test.ts\"",
+    "test": "node --test --test-reporter=spec \"lib/**/*.test.ts\" \"watcher/**/*.test.ts\" \"test/**/*.test.ts\"",
     "watcher": "node watcher/index.ts",
     "integration:hedera": "node scripts/integration-hedera.ts",
     "spike:tlock": "node spikes/s5_tlock.mjs",
