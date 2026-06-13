@@ -7,17 +7,24 @@
 import { useState } from "react";
 import { LADDER_N, type Terms } from "@/lib/types.ts";
 
-const CADENCES = [
-  { label: "Daily", intervalSec: 86_400 },
-  { label: "Weekly", intervalSec: 604_800 },
-  { label: "Monthly", intervalSec: 2_592_000 },
+const INTERVAL_UNITS = [
+  { label: "Minute", unit: "minute", seconds: 60 },
+  { label: "Day", unit: "day", seconds: 86_400 },
+  { label: "Week", unit: "week", seconds: 604_800 },
 ] as const;
+type IntervalUnit = (typeof INTERVAL_UNITS)[number]["unit"];
+
+const DEFAULT_FUNDING_HBAR = 0.1;
+const MIN_FUNDING_HBAR = 0.1;
 
 export function TermsChips({ onTerms }: { onTerms: (terms: Terms) => void }) {
-  const [intervalSec, setIntervalSec] = useState<number>(CADENCES[0].intervalSec);
+  const [intervalCount, setIntervalCount] = useState<number>(1);
+  const [intervalUnit, setIntervalUnit] = useState<IntervalUnit>("minute");
   const [n, setN] = useState<number>(LADDER_N);
-  const [fundingHbar, setFundingHbar] = useState<number>(50);
+  const [fundingHbar, setFundingHbar] = useState<number>(DEFAULT_FUNDING_HBAR);
   const [bulletin, setBulletin] = useState<string>("");
+  const selectedUnit = INTERVAL_UNITS.find((u) => u.unit === intervalUnit) ?? INTERVAL_UNITS[0];
+  const intervalSec = intervalCount * selectedUnit.seconds;
 
   return (
     <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
@@ -29,17 +36,27 @@ export function TermsChips({ onTerms }: { onTerms: (terms: Terms) => void }) {
 
       <div className="mt-4">
         <label className="text-xs font-medium text-neutral-400">Check-in cadence</label>
-        <div className="mt-2 flex gap-2">
-          {CADENCES.map((c) => (
-            <button
-              key={c.label}
-              type="button"
-              onClick={() => setIntervalSec(c.intervalSec)}
-              className={`rounded-full px-3 py-1.5 text-sm ${intervalSec === c.intervalSec ? "bg-emerald-600 text-white" : "bg-neutral-800 text-neutral-300"}`}
-            >
-              {c.label}
-            </button>
-          ))}
+        <div className="mt-2 grid grid-cols-[minmax(5rem,8rem)_1fr] gap-2">
+          <input
+            type="number"
+            min={1}
+            step={1}
+            value={intervalCount}
+            onChange={(e) => setIntervalCount(Math.max(1, Number(e.target.value) || 1))}
+            className="w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-100 outline-none focus:border-neutral-600"
+          />
+          <div className="flex gap-2">
+            {INTERVAL_UNITS.map((u) => (
+              <button
+                key={u.unit}
+                type="button"
+                onClick={() => setIntervalUnit(u.unit)}
+                className={`rounded-full px-3 py-1.5 text-sm ${intervalUnit === u.unit ? "bg-emerald-600 text-white" : "bg-neutral-800 text-neutral-300"}`}
+              >
+                {u.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -61,10 +78,13 @@ export function TermsChips({ onTerms }: { onTerms: (terms: Terms) => void }) {
           <label className="text-xs font-medium text-neutral-400">Funding (ℏ)</label>
           <input
             type="number"
-            min={1}
+            min={MIN_FUNDING_HBAR}
+            step={0.1}
             value={fundingHbar}
             onChange={(e) =>
-              setFundingHbar(Math.max(1, Number(e.target.value) || 1))
+              setFundingHbar(
+                Math.max(MIN_FUNDING_HBAR, Number(e.target.value) || MIN_FUNDING_HBAR),
+              )
             }
             className="mt-1 w-full rounded-md border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-100 outline-none focus:border-neutral-600"
           />

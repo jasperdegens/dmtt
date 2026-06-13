@@ -140,16 +140,15 @@ export function reduce(ctx: ChatContext, ev: ChatEvent): ChatContext {
 // ── Free-text → chip proposal (best-effort; NEVER mutates the machine) ────────
 
 const INTERVAL_PATTERNS: Array<{ re: RegExp; sec: number }> = [
+  { re: /\b(minutely|every\s*minute|each\s*minute|1\s*minute|one\s*minute)\b/i, sec: 60 },
   { re: /\b(daily|every\s*day|each\s*day|1\s*day|one\s*day|24\s*h(ou)?rs?)\b/i, sec: 86_400 },
   { re: /\b(weekly|every\s*week|each\s*week|1\s*week|one\s*week|7\s*days?)\b/i, sec: 604_800 },
-  { re: /\b(hourly|every\s*hour|1\s*hour|one\s*hour)\b/i, sec: 3_600 },
-  { re: /\b(monthly|every\s*month|30\s*days?)\b/i, sec: 2_592_000 },
 ];
 
 /** Best-effort parse of one free-text line into a chip PROPOSAL. Returns a
  *  suggestion only — it does NOT mutate the machine (reduce attaches it as a
- *  transient hint). Examples: "1 day"/"daily" → intervalSec 86400, "weekly" →
- *  604800, "50 hbar" → fundingHbar 50. Unrecognized → { kind:"unknown" }. */
+ *  transient hint). Examples: "2 minutes" → intervalSec 120, "weekly" →
+ *  604800, "0.1 hbar" → fundingHbar 0.1. Unrecognized → { kind:"unknown" }. */
 export function parseFreeText(
   text: string,
 ): { kind: "interval" | "funding" | "bulletin" | "unknown"; terms?: Partial<Terms>; note?: string } {
@@ -162,15 +161,13 @@ export function parseFreeText(
     }
   }
 
-  // "<n> day(s)/hour(s)/week(s)/minute(s)" → intervalSec.
-  const dur = t.match(/\b(\d+(?:\.\d+)?)\s*(second|sec|minute|min|hour|hr|day|week)s?\b/i);
+  // "<n> minute(s)/day(s)/week(s)" → intervalSec.
+  const dur = t.match(/\b(\d+(?:\.\d+)?)\s*(minute|min|day|week)s?\b/i);
   if (dur) {
     const n = parseFloat(dur[1]);
     const unit = dur[2].toLowerCase();
     const perUnit: Record<string, number> = {
-      second: 1, sec: 1,
       minute: 60, min: 60,
-      hour: 3_600, hr: 3_600,
       day: 86_400,
       week: 604_800,
     };
