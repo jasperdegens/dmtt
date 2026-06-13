@@ -194,6 +194,11 @@ export function parseTopicMessages(json: unknown): MirrorTopicMessage[] {
   });
 }
 
+export function topicMessagesUrl(base: string, topicId: TopicId, afterSeq?: number): string {
+  const seqClause = afterSeq != null && afterSeq > 0 ? `&sequencenumber=gt:${afterSeq}` : "";
+  return `${base.replace(/\/$/, "")}/api/v1/topics/${topicId}/messages?limit=100&order=asc${seqClause}`;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Operator key parsing (ported from spikes/_lib.mjs).
 // ─────────────────────────────────────────────────────────────────────────────
@@ -390,9 +395,7 @@ export function createHedera(): HederaSurface {
   }
 
   async function listTopicMessages(topicId: TopicId, afterSeq?: number): Promise<MirrorTopicMessage[]> {
-    const base = mirrorBase();
-    const seqClause = afterSeq != null ? `&sequencenumber=gt:${afterSeq}` : "";
-    const url = `${base}/api/v1/topics/${topicId}/messages?limit=100&order=asc${seqClause}`;
+    const url = topicMessagesUrl(mirrorBase(), topicId, afterSeq);
     const res = await fetch(url, { headers: { accept: "application/json" } });
     if (res.status !== 200) return [];
     return parseTopicMessages(await res.json());
