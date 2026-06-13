@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+build/
+
+# env / secrets — NEVER commit (World signing_key, operator key)
+.env
+.env*.local
+.env.local
+
+# DMTT switch state — holds the sealed tlock ladders
+/data/
+
+# logs / os / editor
+*.log
+.DS_Store
+.idea/
+.vscode/
+*.tsbuildinfo
