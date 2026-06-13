@@ -25,6 +25,8 @@
     "@ai-sdk/anthropic": "^2.0.0",
     "@ai-sdk/react": "^2.0.0",
     "@hiero-ledger/sdk": "^2.81.0",
+    "@ledgerhq/device-management-kit": "^1.6.0",
+    "@ledgerhq/device-transport-kit-web-hid": "^1.2.3",
     "@noble/hashes": "^1.6.0",
     "@worldcoin/idkit": "^4.1.8",
     "@worldcoin/idkit-core": "^4.1.8",
@@ -33,6 +35,7 @@
     "qrcode": "1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "rxjs": "^7.8.2",
     "tlock-js": "^0.9.0",
     "zod": "^3.24.0"
   },
