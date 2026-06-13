@@ -15,6 +15,7 @@
 import {
   Client,
   PrivateKey,
+  PublicKey,
   AccountId,
   TopicCreateTransaction,
   TopicMessageSubmitTransaction,
@@ -24,6 +25,8 @@ import {
   FileCreateTransaction,
   FileContentsQuery,
   KeyList,
+  Transaction,
+  TransactionId,
   TransferTransaction,
   Hbar,
 } from "@hiero-ledger/sdk";
@@ -344,6 +347,19 @@ function operator(): OperatorContext {
   return _cached;
 }
 
+// A network-only Client with NO operator set — used to RELAY an already-signed
+// transaction (submitSignedLedgerTransfer). Critical: Transaction._beforeExecute
+// auto-signs with the client operator when one is present, so relaying through the
+// operator client would let a caller make the agent co-sign/pay an arbitrary tx. A
+// no-operator client adds no signature: only the device's signature authorizes.
+let _bareClient: Client | null = null;
+function networkClient(): Client {
+  if (_bareClient) return _bareClient;
+  const net = (env("HEDERA_NETWORK") ?? "testnet").toLowerCase();
+  _bareClient = net === "mainnet" ? Client.forMainnet() : Client.forTestnet();
+  return _bareClient;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SDK ops: file read (FileContentsQuery), used by the file route + HFS reads.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -547,6 +563,127 @@ export async function mirrorAccountTransactions(
   const res = await fetch(url, { headers: { accept: "application/json" } });
   if (res.status !== 200) return [];
   return parseAccountTransactions(await res.json());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ledger arm/cancel transfer assembly (C1). The DEVICE signs; the agent only
+// builds the unsigned body and relays the signed bytes to the network — it never
+// holds the device key and adds no authorization of its own. Split in two so the
+// browser (which has the Ledger but not the SDK) round-trips through here:
+//   1. buildLedgerTransfer → freeze a single-node CryptoTransfer, hand back the
+//      exact TransactionBody bytes the device must sign (+ the frozen tx bytes).
+//   2. the browser signs those bytes on the Ledger (Ed25519).
+//   3. submitSignedLedgerTransfer → reattach the signature and submit.
+// The mirror-verify recipe (§7) is what later authorizes the arm/cancel — this
+// path only produces the on-chain transfer it verifies.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface BuiltLedgerTransfer {
+  /** The frozen, UNSIGNED transaction (base64 of TransactionList bytes) — round-tripped to submit. */
+  frozenTxBase64: string;
+  /** The exact TransactionBody bytes the Ledger must sign (hex). */
+  bodyHex: string;
+  /** The transaction id (payer = the Ledger account) — becomes the mirror-verified armTxId. */
+  transactionId: TxId;
+  /** The single node this transaction is bound to (e.g. "0.0.3"). */
+  nodeAccountId: string;
+}
+
+/** Pick one node from the client's network (single node ⇒ a single on-device prompt). */
+function pickNodeAccountId(client: Client): AccountId {
+  const nodes = Object.values(client.network as Record<string, AccountId>);
+  if (nodes.length === 0) return AccountId.fromString("0.0.3");
+  const chosen = nodes[Math.floor(Math.random() * nodes.length)];
+  return chosen instanceof AccountId ? chosen : AccountId.fromString(String(chosen));
+}
+
+/** Build + freeze a Ledger → agent CryptoTransfer and return the bytes the device must sign.
+ *  Payer = the Ledger account (it is debited, which is the §7 proof it signed). Amount is in
+ *  canonical tinybars (FUNDING for arm; 1 for cancel). */
+export async function buildLedgerTransfer(args: {
+  ledgerAccountId: AccountIdStr;
+  amountTinybar: number;
+  memo: string;
+}): Promise<BuiltLedgerTransfer> {
+  const { client, operatorId } = operator();
+  const ledger = AccountId.fromString(args.ledgerAccountId);
+  if (ledger.toString() === operatorId.toString()) {
+    throw new Error("ledger account must differ from the agent account");
+  }
+  const tinybars = Math.round(args.amountTinybar);
+  if (!(tinybars > 0)) throw new Error("transfer amount must be positive");
+  if (Buffer.byteLength(args.memo, "utf8") > 100) throw new Error("memo exceeds 100 bytes");
+
+  const node = pickNodeAccountId(client);
+  const txId = TransactionId.generate(ledger);
+  const tx = new TransferTransaction()
+    .setTransactionId(txId)
+    .setNodeAccountIds([node])
+    .addHbarTransfer(ledger, Hbar.fromTinybars(-tinybars))
+    .addHbarTransfer(operatorId, Hbar.fromTinybars(tinybars)) // agent = operator
+    .setTransactionMemo(args.memo);
+  tx.freezeWith(client); // explicit txId + node ⇒ no operator signature is added
+
+  const frozenTxBase64 = Buffer.from(tx.toBytes()).toString("base64");
+
+  // Capture the per-node TransactionBody bytes via the public external-signer hook
+  // (the throwaway signature is discarded — we only keep the bytes the device must sign).
+  let bodyBytes: Uint8Array | undefined;
+  const throwaway = PrivateKey.generateED25519();
+  await tx.signWith(throwaway.publicKey, async (message) => {
+    bodyBytes = message;
+    return throwaway.sign(message);
+  });
+  if (!bodyBytes) throw new Error("failed to extract transaction body bytes");
+
+  return {
+    frozenTxBase64,
+    bodyHex: Buffer.from(bodyBytes).toString("hex"),
+    transactionId: txId.toString(),
+    nodeAccountId: node.toString(),
+  };
+}
+
+/** Reattach the Ledger's Ed25519 signature to the frozen transfer and submit it.
+ *  Returns the network transaction id (the §7-verifiable armTxId/cancelTxId). */
+export async function submitSignedLedgerTransfer(args: {
+  frozenTxBase64: string;
+  publicKeyHex: string;
+  signatureHex: string;
+}): Promise<{ transactionId: TxId; status: string }> {
+  // Relay only — submit through a no-operator client so the agent never co-signs (see networkClient).
+  const client = networkClient();
+  const tx = Transaction.fromBytes(Uint8Array.from(Buffer.from(args.frozenTxBase64, "base64")));
+  const publicKey = PublicKey.fromBytesED25519(
+    Uint8Array.from(Buffer.from(args.publicKeyHex.replace(/^0x/, ""), "hex")),
+  );
+  const signature = Uint8Array.from(Buffer.from(args.signatureHex.replace(/^0x/, ""), "hex"));
+  tx.addSignature(publicKey, signature);
+
+  const resp = await tx.execute(client);
+  const receipt = await resp.getReceipt(client);
+  return { transactionId: resp.transactionId.toString(), status: receipt.status.toString() };
+}
+
+/** Resolve the Hedera account(s) controlled by a public key via the mirror. The Ledger
+ *  yields a key, not an account id (Hedera account ids are network-assigned), so this is
+ *  how we "identify the wallet". Returns [] when the key has no account yet. */
+export async function lookupAccountIdsByPublicKey(
+  publicKeyHex: string,
+): Promise<{ accountId: AccountIdStr | null; accounts: AccountIdStr[] }> {
+  const key = publicKeyHex.replace(/^0x/, "").toLowerCase();
+  const url = `${mirrorBase()}/api/v1/accounts?account.publickey=${encodeURIComponent(key)}&limit=10&balance=false`;
+  let json: unknown = null;
+  try {
+    const res = await fetch(url, { headers: { accept: "application/json" } });
+    if (res.status !== 200) return { accountId: null, accounts: [] };
+    json = await res.json();
+  } catch {
+    return { accountId: null, accounts: [] };
+  }
+  const rows = (json as { accounts?: Array<{ account?: string }> } | null)?.accounts ?? [];
+  const accounts = rows.map((a) => a.account).filter((a): a is string => Boolean(a));
+  return { accountId: accounts[0] ?? null, accounts };
 }
 
 /** Re-export for the file route / callers that want the creds gate. */
