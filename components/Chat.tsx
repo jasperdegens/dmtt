@@ -72,7 +72,7 @@ const WORLD_ENV: WorldEnvironment =
 const POLL_MS = 10_000;
 
 const INTRO =
-  "Arr — let's forge your dead man's pact. I'll ask one thing at a time. First, your memo: pen it (or drop a file) in the card below. It's encrypted in your browser before aught leaves your device — the plaintext never reaches this chat nor my servers.";
+  "Arrr, welcome aboard, ye magnificent doomed soul. I'm Cap'n Mordecai Graves — keeper o' the Deadman's Pact. The bargain's simple: ye trust me with yer last words, an' I loose 'em upon the world ONLY if ye go silent beneath the tides. We forge this pact one step at a time — no rushin'. First up: scrawl yer memo below. I seal it inside yer own browser; the plaintext never reaches this chat nor me servers. Cross me heart, hope to drown.";
 
 let msgSeq = 0;
 function nextId(): string {
@@ -111,12 +111,12 @@ function describeTerms(t: Terms): string {
 function restoreSummary(v: SwitchView): string {
   const rungs = v.rungHashes.length || v.terms.n;
   if (v.status === "ACTIVE") {
-    return `Loaded your switch — it's ACTIVE. Live rung ${v.liveIdx}/${rungs}, ${v.seq} check-in(s) so far. I'm watching the topic and counting down to the next deadline below — check in to postpone, or cancel with your Ledger.`;
+    return `Ahoy, yer back! Yer pact still stands — rung ${v.liveIdx} o' ${rungs}, ${v.seq} signal(s) sent so far. I kept me eye on it the whole while. Check in below to buy more time, or sign a Ledger transfer to call it off.`;
   }
   if (v.status === "RELEASED") {
-    return "Loaded your switch — it has RELEASED. The capsule is public (or about to be); reveal the memo below.";
+    return "Ahoy. The tides turned while ye were away — yer switch RELEASED. The chest is open to all now; haul out yer memo below.";
   }
-  return "Loaded your switch — it was CANCELLED. Its rungs were shredded, so there's nothing to reveal.";
+  return "Ahoy. This pact was stood down — its ladder shredded to splinters. Naught left to reveal, matey.";
 }
 
 const STATUS_BADGE: Record<SwitchView["status"], string> = {
@@ -271,7 +271,7 @@ export function Chat() {
   const onCheckedIn = useCallback(
     (result: CheckinResult) => {
       pushAssistant(
-        `Checked in — release postponed to ${new Date(result.newDeadline).toUTCString()} (seq ${result.seq}, rung ${result.liveIdx}). I'll keep watching and counting down.`,
+        `Still breathin', I see — good on ye. I've shoved the reckonin' back to ${new Date(result.newDeadline).toUTCString()} (signal ${result.seq}, rung ${result.liveIdx}) an' burned the nearest rung. Back to me watch.`,
       );
       void refresh();
     },
@@ -279,7 +279,7 @@ export function Chat() {
   );
   const onCancelled = useCallback(() => {
     pushAssistant(
-      "Switch cancelled — the release schedule was deleted and the ladder shredded. Nothing will be released.",
+      "Done — pact stood down. I've torn up the schedule an' shredded the ladder to fish bait. Yer secret sinks with me; nothin' will ever be loosed.",
     );
     void refresh();
   }, [pushAssistant, refresh]);
@@ -348,7 +348,7 @@ export function Chat() {
       );
     } catch (e) {
       pushAssistant(
-        `I couldn't arm the switch: ${e instanceof Error ? e.message : String(e)}. Nothing was armed — fix it and try again.`,
+        `Blast — I couldn't arm the pact: ${e instanceof Error ? e.message : String(e)}. Nothin' was armed, so no harm done. Patch it up an' give it another go.`,
       );
     } finally {
       setArming(false);
@@ -364,7 +364,7 @@ export function Chat() {
       window.history.replaceState(null, "", url.toString());
     }
     pushAssistant(
-      `Armed — your switch is live (topic ${id}). I'm watching it and counting down to the next deadline below. Bookmark the link to return here any time; check in before the deadline to postpone, or go silent to release.`,
+      `Armed an' afloat (topic ${id})! I'm countin' down to yer next deadline below. Stash this link to sail back any time — check in afore the glass runs out to push it back, or go quiet to loose the secret.`,
       [
         { label: "↩ Return to this switch (chat)", href: `/?t=${id}` },
         { label: "Status & reveal page ↗", href: `/s/${id}` },
@@ -388,7 +388,7 @@ export function Chat() {
 
     setTopicId(t);
     setContext({ state: "ARMED", topicId: t });
-    setMessages([{ id: nextId(), role: "assistant", text: `Welcome back — reloading switch ${t}.` }]);
+    setMessages([{ id: nextId(), role: "assistant", text: `Ahoy again — haulin' up switch ${t} from the depths…` }]);
     setBooted(true);
 
     let cancelled = false;
@@ -399,8 +399,8 @@ export function Chat() {
         if (!res.ok) {
           pushAssistant(
             res.status === 404
-              ? `I can't find a switch for topic ${t} yet — it may still be propagating to the mirror. I'll keep watching below.`
-              : `Couldn't load topic ${t} (error ${res.status}). I'll keep retrying below.`,
+              ? `Hm — no sign o' topic ${t} on the charts yet. It may still be driftin' to the mirror. I'll keep a lookout below.`
+              : `Rough seas loadin' topic ${t} (error ${res.status}). I'll keep tryin' below.`,
           );
           return;
         }
@@ -409,7 +409,7 @@ export function Chat() {
         setView(v);
         pushAssistant(restoreSummary(v), [{ label: "Status & reveal page ↗", href: `/s/${t}` }]);
       } catch {
-        if (!cancelled) pushAssistant(`Network hiccup loading ${t} — I'll keep retrying below.`);
+        if (!cancelled) pushAssistant(`A squall hit loadin' ${t} — I'll keep tryin' below.`);
       }
     })();
     return () => {
@@ -498,9 +498,8 @@ export function Chat() {
     if (live) {
       if (!topicId) {
         return (
-          <div className="panel panel--ok p-5">
-            <h3 className="panel-title">Armed.</h3>
-            <p className="panel-note mt-2 text-sm">Your switch is live.</p>
+          <div className="compose compose--ok">
+            <p className="compose__tag">⚓ Pact armed — keeping watch</p>
           </div>
         );
       }
@@ -546,7 +545,7 @@ export function Chat() {
                 onClick={arm}
                 className="btn btn--gold w-full"
               >
-                {arming ? "Sealing the chest…" : "⚓ Arm the switch"}
+                {arming ? "Sealin' the pact…" : "⚓ Arm the pact"}
               </button>
             ) : null}
           </>

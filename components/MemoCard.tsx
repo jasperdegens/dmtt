@@ -88,43 +88,38 @@ export function MemoCard({
   }
 
   return (
-    <div className="panel p-5">
-      <h2 className="panel-title">The memo</h2>
-      <p className="mt-1 text-xs text-[color:var(--gold-bright)]">
-        🔒 Encrypted in your browser. The plaintext never touches our servers.
-      </p>
-
-      <div className="mt-4 flex gap-2">
-        <button type="button" onClick={() => setTab("note")} className={tab === "note" ? "tab tab--active" : "tab"}>
-          Write a note
+    <div className="compose">
+      <div className="compose__chips">
+        <button type="button" onClick={() => setTab("note")} className={tab === "note" ? "qchip qchip--active" : "qchip"}>
+          ✍ Write a note
         </button>
-        <button type="button" onClick={() => setTab("file")} className={tab === "file" ? "tab tab--active" : "tab"}>
-          Drop a file
+        <button type="button" onClick={() => setTab("file")} className={tab === "file" ? "qchip qchip--active" : "qchip"}>
+          📎 Drop a file
         </button>
       </div>
 
-      <div className="mt-4">
-        {tab === "note" ? (
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="If you are reading this, I have gone quiet…"
-            rows={5}
-            className="field resize-y"
-          />
-        ) : (
-          <input
-            type="file"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="field file:mr-3 file:rounded-md file:border-0 file:bg-[color:var(--gold-deep)] file:px-3 file:py-1.5 file:text-[#2a1810]"
-          />
-        )}
-      </div>
+      {tab === "note" ? (
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="If you are reading this, I have gone quiet…"
+          rows={4}
+          className="field resize-y"
+        />
+      ) : (
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="field file:mr-3 file:rounded-md file:border-0 file:bg-[color:var(--gold-deep)] file:px-3 file:py-1.5 file:text-[#2a1810]"
+        />
+      )}
 
-      {error ? <p className="mt-3 text-xs text-[color:var(--red)]">{error}</p> : null}
+      <p className="compose__tag">🔒 Sealed in your browser · the plaintext never leaves</p>
 
-      <button type="button" disabled={busy} onClick={capture} className="btn btn--gold mt-4 w-full">
-        {busy ? "Sealing the chest…" : "Encrypt locally & continue"}
+      {error ? <p className="compose__err">{error}</p> : null}
+
+      <button type="button" disabled={busy} onClick={capture} className="btn btn--gold w-full">
+        {busy ? "Sealin' the chest…" : "Seal it ⚓"}
       </button>
     </div>
   );

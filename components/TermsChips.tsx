@@ -40,6 +40,9 @@ export function TermsChips({
   const [n, setN] = useState<number>(LADDER_N);
   const [fundingHbar, setFundingHbar] = useState<number>(DEFAULT_FUNDING_HBAR);
   const [bulletin, setBulletin] = useState<string>("");
+  // The common path is one tap on a cadence chip; everything else (count, ladder length,
+  // funding, bulletin) is sensible-by-default and tucked behind this disclosure.
+  const [showFinePrint, setShowFinePrint] = useState<boolean>(false);
   const selectedUnit = INTERVAL_UNITS.find((u) => u.unit === intervalUnit) ?? INTERVAL_UNITS[0];
   const intervalSec = intervalCount * selectedUnit.seconds;
 
@@ -61,86 +64,102 @@ export function TermsChips({
     if (typeof suggestion.bulletin === "string") setBulletin(suggestion.bulletin);
   }, [suggestion]);
 
+  const cadenceLabel = `every ${intervalCount > 1 ? `${intervalCount} ` : ""}${selectedUnit.label.toLowerCase()}${intervalCount > 1 ? "s" : ""}`;
+
   return (
-    <div className="panel p-5">
-      <h2 className="panel-title">Release terms</h2>
-      <p className="panel-note mt-1 text-xs">
-        Check in once per interval to postpone. Go silent for one full interval and the
-        network releases your memo.
-      </p>
-
-      <div className="mt-4">
-        <label className="muted text-xs font-medium">Check-in cadence</label>
-        <div className="mt-2 grid grid-cols-[minmax(5rem,8rem)_1fr] gap-2">
-          <input
-            type="number"
-            min={1}
-            step={1}
-            value={intervalCount}
-            onChange={(e) => setIntervalCount(Math.max(1, Number(e.target.value) || 1))}
-            className="field"
-          />
-          <div className="flex flex-wrap gap-2">
-            {INTERVAL_UNITS.map((u) => (
-              <button
-                key={u.unit}
-                type="button"
-                onClick={() => setIntervalUnit(u.unit)}
-                className={intervalUnit === u.unit ? "tab tab--active" : "tab"}
-              >
-                {u.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-4">
-        <div>
-          <label className="muted text-xs font-medium">Ladder length (N)</label>
-          <input
-            type="number"
-            min={1}
-            max={20}
-            value={n}
-            onChange={(e) => setN(Math.max(1, Number(e.target.value) || 1))}
-            className="field mt-1"
-          />
-        </div>
-        <div>
-          <label className="muted text-xs font-medium">Funding (ℏ)</label>
-          <input
-            type="number"
-            min={MIN_FUNDING_HBAR}
-            step={0.1}
-            value={fundingHbar}
-            onChange={(e) =>
-              setFundingHbar(
-                Math.max(MIN_FUNDING_HBAR, Number(e.target.value) || MIN_FUNDING_HBAR),
-              )
-            }
-            className="field mt-1"
-          />
-        </div>
-      </div>
-
-      <div className="mt-4">
-        <label className="muted text-xs font-medium">Public bulletin (posted at release)</label>
-        <textarea
-          value={bulletin}
-          onChange={(e) => setBulletin(e.target.value)}
-          rows={2}
-          placeholder="A. has gone silent. The enclosed memo is now public…"
-          className="field mt-1 resize-y"
-        />
+    <div className="compose">
+      {/* The common path: one tap picks the cadence (count defaults to 1). */}
+      <p className="compose__tag">⏳ How often will you check in?</p>
+      <div className="compose__chips">
+        {INTERVAL_UNITS.map((u) => {
+          const active = intervalUnit === u.unit && intervalCount === 1;
+          return (
+            <button
+              key={u.unit}
+              type="button"
+              onClick={() => {
+                setIntervalUnit(u.unit);
+                setIntervalCount(1);
+              }}
+              className={active ? "qchip qchip--active" : "qchip"}
+            >
+              Every {u.label.toLowerCase()}
+            </button>
+          );
+        })}
       </div>
 
       <button
         type="button"
-        onClick={() => onTerms({ intervalSec, n, fundingHbar, bulletin })}
-        className="btn btn--gold mt-4 w-full"
+        className="disclosure"
+        onClick={() => setShowFinePrint((v) => !v)}
+        aria-expanded={showFinePrint}
       >
-        Set terms &amp; continue
+        {showFinePrint ? "▾ Hide the fine print" : "▸ Tweak the fine print"}
+      </button>
+
+      {showFinePrint ? (
+        <div className="compose__grid">
+          <label className="compose__field">
+            <span>Check in every</span>
+            <span className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={intervalCount}
+                onChange={(e) => setIntervalCount(Math.max(1, Number(e.target.value) || 1))}
+                className="field"
+              />
+              <span className="muted text-xs">
+                {selectedUnit.label.toLowerCase()}
+                {intervalCount > 1 ? "s" : ""}
+              </span>
+            </span>
+          </label>
+          <label className="compose__field">
+            <span>Ladder rungs (N)</span>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={n}
+              onChange={(e) => setN(Math.max(1, Number(e.target.value) || 1))}
+              className="field"
+            />
+          </label>
+          <label className="compose__field">
+            <span>Funding (ℏ)</span>
+            <input
+              type="number"
+              min={MIN_FUNDING_HBAR}
+              step={0.1}
+              value={fundingHbar}
+              onChange={(e) =>
+                setFundingHbar(Math.max(MIN_FUNDING_HBAR, Number(e.target.value) || MIN_FUNDING_HBAR))
+              }
+              className="field"
+            />
+          </label>
+          <label className="compose__field compose__field--wide">
+            <span>Public bulletin (posted at release)</span>
+            <textarea
+              value={bulletin}
+              onChange={(e) => setBulletin(e.target.value)}
+              rows={2}
+              placeholder="A. has gone silent. The enclosed memo is now public…"
+              className="field resize-y"
+            />
+          </label>
+        </div>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={() => onTerms({ intervalSec, n, fundingHbar, bulletin })}
+        className="btn btn--gold w-full"
+      >
+        Lock in — check {cadenceLabel} ⚓
       </button>
     </div>
   );

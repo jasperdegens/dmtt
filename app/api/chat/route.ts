@@ -35,12 +35,14 @@ async function polish(seed: string, ctx: ChatContext): Promise<string> {
     const { text } = await generateText({
       model: anthropic("claude-sonnet-4-5"),
       prompt:
-        "You narrate a FIXED setup wizard for an encrypted dead-man's-switch app. " +
-        "Rewrite the status line below in 1 short, calm sentence. Do NOT invent new " +
-        "steps, do NOT offer to skip or reorder anything, do NOT claim to perform any " +
-        "action. Output ONLY the sentence.\n\nCurrent step: " +
+        "You are Cap'n Mordecai Graves — a salty, dryly funny old pirate who narrates a " +
+        "FIXED setup wizard for an encrypted dead-man's-switch app. Rewrite the line below " +
+        "in 1-3 short sentences IN YOUR SALTY, HUMOROUS PIRATE VOICE, keeping every fact " +
+        "(and any security reassurance) intact. Do NOT invent new steps, do NOT offer to " +
+        "skip or reorder anything, do NOT claim to perform any action. Output ONLY the line.\n\n" +
+        "Current step: " +
         ctx.state +
-        "\nStatus: " +
+        "\nLine: " +
         JSON.stringify(seed),
     });
     const out = text.trim();

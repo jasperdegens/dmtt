@@ -48,22 +48,20 @@ export function LedgerSignCard({
   }
 
   return (
-    <div className="panel p-5">
-      <h2 className="panel-title">Arm with your Ledger</h2>
-      <p className="panel-note mt-1 text-xs">
-        Your device signs a {fundingHbar} ℏ funding transfer to the agent. The memo shown
-        on the Trusted Display will read:
-      </p>
-      <p className="mono mt-2 break-all rounded-md border border-[color:var(--panel-border)] bg-black/30 p-2 text-xs text-[color:var(--gold-bright)]">
-        DMTT:ARM:{policyHash}
-      </p>
+    <div className="compose">
+      <p className="compose__tag">🔏 Signed on-device · the key never leaves your Ledger</p>
 
-      <button type="button" disabled={busy} onClick={sign} className="btn btn--gold mt-4 w-full">
-        {busy ? "Waiting for device…" : "Sign on device (stub)"}
+      <details className="peek">
+        <summary>Memo to confirm on the Trusted Display</summary>
+        <p className="peek__body mt-2">DMTT:ARM:{policyHash}</p>
+      </details>
+
+      <button type="button" disabled={busy} onClick={sign} className="btn btn--gold w-full">
+        {busy ? "Waitin' on yer device…" : `Sign the ${fundingHbar} ℏ arm transfer`}
       </button>
 
-      <p className="mt-3 text-[11px] text-[color:var(--gold-bright)]">
-        Stub — real WebHID device signing arrives in Phase 5. This emits a mock arm
+      <p className="compose__note">
+        Stub — real WebHID device signing arrives in Phase 5; this emits a mock arm
         artifact so the flow is walkable end-to-end.
       </p>
     </div>

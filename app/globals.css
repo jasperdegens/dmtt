@@ -939,6 +939,194 @@ body.scene-locked {
   }
 }
 
+/* ============================== CHAT-NATIVE ACTION CARDS ============================== */
+/* Each step renders as a clean "your turn" composer at the foot of the chat — no heavy
+   panel title or explanatory prose (the captain says all that, with a wink, in his
+   dialogue). Just the controls. Used by every step + live card so the whole flow reads
+   like one conversation. Security reassurances stay (a tiny caps tag), never restyled away. */
+.compose {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1.5px solid color-mix(in srgb, var(--gold) 30%, transparent);
+  border-radius: 13px;
+  background: color-mix(in srgb, #000 24%, transparent);
+}
+.compose--danger {
+  border-color: color-mix(in srgb, var(--red) 50%, transparent);
+}
+.compose--ok {
+  border-color: color-mix(in srgb, #5bd06a 45%, transparent);
+}
+.compose--released {
+  border-color: color-mix(in srgb, var(--gold) 60%, transparent);
+}
+.compose__tag {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--font-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.64rem;
+  color: var(--gold-bright);
+}
+.compose__lead {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--cream) 84%, transparent);
+}
+.compose__note {
+  margin: 0;
+  font-size: 0.7rem;
+  font-style: italic;
+  color: color-mix(in srgb, var(--cream) 55%, transparent);
+}
+.compose__err {
+  margin: 0;
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--red) 92%, #fff);
+}
+.compose__ok {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #8fe6a6;
+}
+.compose__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* big tappable quick-reply pill — the primary chat affordance */
+.qchip {
+  font-family: var(--font-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.78rem;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1.5px solid color-mix(in srgb, var(--gold) 40%, transparent);
+  background: transparent;
+  color: var(--cream);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.qchip:hover {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+}
+.qchip--active {
+  background: var(--gold);
+  color: #2a1810;
+  border-color: var(--gold-deep);
+}
+
+/* a quiet disclosure toggle for advanced / fine-print controls */
+.disclosure {
+  align-self: flex-start;
+  font-family: var(--font-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.62rem;
+  color: var(--gold-bright);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.1rem 0;
+}
+.disclosure:hover {
+  color: #fff;
+}
+
+/* compact labelled fields for the fine-print grid */
+.compose__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 0.7rem;
+}
+.compose__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.compose__field--wide {
+  grid-column: 1 / -1;
+}
+.compose__field > span {
+  font-family: var(--font-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.58rem;
+  color: color-mix(in srgb, var(--cream) 60%, transparent);
+}
+
+/* live status strip */
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--cream);
+}
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+.status-grid > div {
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, transparent);
+  border-radius: 9px;
+  padding: 0.5rem 0.6rem;
+}
+.status-grid span {
+  display: block;
+  font-family: var(--font-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.55rem;
+  color: color-mix(in srgb, var(--cream) 55%, transparent);
+}
+.status-grid b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.15rem;
+  color: var(--cream);
+}
+
+/* a minimal collapsible (audit trail / ledger memo) */
+.peek > summary {
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.6rem;
+  color: var(--gold-bright);
+}
+.peek > summary::-webkit-details-marker {
+  display: none;
+}
+.peek[open] > summary {
+  margin-bottom: 0.4rem;
+}
+.peek__body {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.72rem;
+  color: color-mix(in srgb, var(--cream) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 20%, transparent);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  word-break: break-all;
+  background: rgba(0, 0, 0, 0.25);
+}
+
 /* ============================== STATUS / REVEAL PAGE (/s/[topicId]) ============================== */
 /* A scrollable left column of parchment cards over the same fixed scene; the captain
    stays at lower-right and reacts to the reveal. */
