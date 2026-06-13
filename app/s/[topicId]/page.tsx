@@ -10,6 +10,7 @@ import { headers } from "next/headers";
 
 import { StatusCard } from "@/components/StatusCard.tsx";
 import { RevealCard } from "@/components/RevealCard.tsx";
+import { CheckinCard } from "@/components/CheckinCard.tsx";
 import type { SwitchView } from "@/lib/types.ts";
 
 async function loadView(topicId: string): Promise<SwitchView | null> {
@@ -44,6 +45,12 @@ export default async function SwitchPage({
       </header>
 
       <StatusCard topicId={topicId} />
+
+      {/* The owner's postponement affordance. Only an ACTIVE switch can be checked
+          into; CheckinCard itself shows the imminent-release notice if the ladder is
+          spent. The initial server-loaded view is enough — a successful check-in
+          reloads the page, and StatusCard keeps the live status fresh meanwhile. */}
+      {view && view.status === "ACTIVE" ? <CheckinCard view={view} /> : null}
 
       {view ? (
         <RevealCard view={view} />

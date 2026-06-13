@@ -12,6 +12,11 @@ import { useState } from "react";
 import { encrypt, hashCiphertext } from "@/lib/crypto.ts";
 import { FAST_PATH_MAX_BYTES, type Hex64 } from "@/lib/types.ts";
 
+// Storage ceiling: HFS files cap at 1 MB and the HCS large path is scoped to ~1 MB
+// too (CLAUDE.md C2). Guard the plaintext just under that so the ciphertext + the
+// AES-GCM overhead still fit — a clear message beats a failed upload mid-arm.
+const MAX_PLAINTEXT_BYTES = 1_000_000;
+
 export interface MemoCaptured {
   ciphertextHash: Hex64;
   ciphertext: Uint8Array;
@@ -45,6 +50,14 @@ export function MemoCard({
       } else {
         if (!file) throw new Error("Choose a file first.");
         plaintext = new Uint8Array(await file.arrayBuffer());
+      }
+      // Storage ceiling guard (CLAUDE.md C2): HFS files cap at 1 MB and the HCS large
+      // path is scoped to ~1 MB too. Reject oversized payloads up front with a clear
+      // message — a failed upload mid-arm (after Ledger sign + ladder mint) is worse.
+      if (plaintext.length > MAX_PLAINTEXT_BYTES) {
+        throw new Error(
+          `Too large: ${(plaintext.length / 1_000_000).toFixed(2)} MB exceeds the ${(MAX_PLAINTEXT_BYTES / 1_000_000).toFixed(0)} MB limit.`,
+        );
       }
       // Local AES-256-GCM. K is returned then immediately dropped (the arm flow
       // mints the ladder from it before discarding); we keep only the ciphertext.
