@@ -47,13 +47,36 @@
   --font-caps: var(--font-engrave);
   --font-ui: "EB Garamond", Georgia, serif;
 
-  /* nautical plaque tokens — wood panel + brass behind every button (see BUTTONS).
-     Each button sets --frame/--frame-line/--panel-top/--panel-bot/--ink; the shared
-     .btn recipe paints a cut-corner cartouche from them, so a variant is 4 colours. */
-  --wood-top: #5a3618;
-  --wood-bot: #38210e;
-  --brass: #caa23f;
-  --brass-bot: #936c1c;
+  /* nautical plaque tokens — every button is a FLAT wood nameplate inside a solid gold
+     frame with cut corners. No gradients: a variant is just three colours
+     (--frame / --panel / --ink). The two cut-corner outlines are defined once here and
+     reused by every plaque (.btn, .qchip, .tab, .about-btn); --cut sizes the chamfer,
+     --fw is the gold frame width, and the inner outline is inset by --fw to match. */
+  --wood: #482c14;
+  --wood-deep: #36200d;
+  --brass: #c79a36;
+  --cut: 11px;
+  --fw: 3px;
+  --plaque-clip: polygon(
+    var(--cut) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut)),
+    0 var(--cut)
+  );
+  --plaque-clip-in: polygon(
+    calc(var(--cut) - var(--fw)) 0,
+    calc(100% - var(--cut) + var(--fw)) 0,
+    100% calc(var(--cut) - var(--fw)),
+    100% calc(100% - var(--cut) + var(--fw)),
+    calc(100% - var(--cut) + var(--fw)) 100%,
+    calc(var(--cut) - var(--fw)) 100%,
+    0 calc(100% - var(--cut) + var(--fw)),
+    0 calc(var(--cut) - var(--fw))
+  );
 
   /* surfaces */
   --panel-border: color-mix(in srgb, var(--gold) 50%, transparent);
@@ -172,23 +195,17 @@ body.scene-locked {
 }
 
 /* ============================== BUTTONS ============================== */
-/* The "cartouche plaque": every button is a carved nameplate — a wood panel inside a
-   double gold rule, with cut (bevelled) corners and engraved Cinzel lettering. The whole
-   frame is painted from four custom props (--frame / --frame-line / --panel-top /
-   --panel-bot) plus the engraved --ink, so each variant is just a recolour. No images:
-   the gold frame is the element's own background-color; two centred, no-repeat gradient
-   layers sit on top of it — a slightly-inset bright rule, then the wood panel — leaving
-   concentric gold bands at the edge. clip-path bevels all four corners (it carves the
-   gold frame too, so the corners read solid, not open). drop-shadow gives the lift that
-   clip-path would otherwise eat; inset shadows carve the text well. */
+/* The "cartouche plaque": every button is a FLAT wood nameplate inside a single solid
+   gold frame, with cut (bevelled) corners and engraved Cinzel lettering. No gradients —
+   the gold frame is the element's own solid background; a solid ::before panel sits inset
+   by --fw on top of it (z-index:-1 keeps it above the gold but below the label), leaving
+   one clean gold border the whole way around, chamfer included. A variant is just three
+   colours: --frame / --panel / --ink. (clip-path eats the outer box-shadow, so the lift
+   is a drop-shadow.) */
 .btn {
-  /* default = the reference plaque: teak panel, gold rule, warm cream engraving */
   --frame: var(--gold-deep);
-  --frame-line: var(--gold-bright);
-  --panel-top: var(--wood-top);
-  --panel-bot: var(--wood-bot);
+  --panel: var(--wood);
   --ink: #ffe7bd;
-  --cut: 12px;
 
   position: relative;
   isolation: isolate;
@@ -206,159 +223,86 @@ body.scene-locked {
   padding: 0.72rem 1.35rem;
   border: 0;
   color: var(--ink);
-
-  /* gold frame = the element's own background; two centred layers carve the rule + panel */
   background-color: var(--frame);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-image:
-    /* faint vertical wood grain (transparent gaps let the panel sheen show through) */
-    repeating-linear-gradient(
-      90deg,
-      rgba(0, 0, 0, 0.13) 0 1.5px,
-      transparent 1.5px 5px
-    ),
-    /* the wood panel itself (top-lit) */
-    linear-gradient(180deg, var(--panel-top), var(--panel-bot)),
-    /* the bright inner rule, just outside the panel */
-    linear-gradient(180deg, var(--frame-line), var(--frame));
-  background-size:
-    calc(100% - 18px) calc(100% - 18px),
-    calc(100% - 18px) calc(100% - 18px),
-    calc(100% - 14px) calc(100% - 14px);
-
-  /* bevelled-corner cartouche silhouette */
-  clip-path: polygon(
-    var(--cut) 0,
-    calc(100% - var(--cut)) 0,
-    100% var(--cut),
-    100% calc(100% - var(--cut)),
-    calc(100% - var(--cut)) 100%,
-    var(--cut) 100%,
-    0 calc(100% - var(--cut)),
-    0 var(--cut)
-  );
-
-  /* carved well: light top inner edge, deep bottom inner shadow, hairline seam */
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    inset 0 -3px 5px rgba(0, 0, 0, 0.42),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.28);
-  filter: drop-shadow(0 5px 11px rgba(0, 0, 0, 0.5));
-  text-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.55),
-    0 -1px 0 rgba(255, 255, 255, 0.05);
-
+  clip-path: var(--plaque-clip);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
   cursor: pointer;
   transition:
-    filter 0.16s ease,
+    filter 0.15s ease,
     transform 0.12s ease,
-    background-color 0.16s ease;
+    background-color 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
-/* a brass sheen that sweeps across the plaque on hover */
-.btn::after {
+/* the flat wood panel — solid colour, inset to reveal the gold frame */
+.btn::before {
   content: "";
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    115deg,
-    transparent 32%,
-    rgba(255, 244, 208, 0.26) 48%,
-    transparent 64%
-  );
-  transform: translateX(-130%);
-  transition: transform 0.55s ease;
+  inset: var(--fw);
+  z-index: -1;
+  background-color: var(--panel);
+  clip-path: var(--plaque-clip-in);
 }
 .btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.55)) brightness(1.07);
-}
-.btn:hover:not(:disabled)::after {
-  transform: translateX(130%);
+  filter: drop-shadow(0 5px 9px rgba(0, 0, 0, 0.5)) brightness(1.08);
 }
 .btn:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--gold-bright) 80%, transparent);
+  outline: 2px solid var(--gold-bright);
   outline-offset: 3px;
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--gold-bright) 70%, transparent))
-    drop-shadow(0 5px 11px rgba(0, 0, 0, 0.5));
 }
 .btn:active:not(:disabled) {
   transform: translateY(1px);
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
-  box-shadow:
-    inset 0 2px 6px rgba(0, 0, 0, 0.55),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.32);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45)) brightness(0.93);
 }
 .btn:disabled {
   cursor: default;
-  filter: grayscale(0.35) brightness(0.82);
-  opacity: 0.62;
+  filter: grayscale(0.4) brightness(0.8);
+  opacity: 0.6;
 }
 
-/* PRIMARY — the lead plaque: warmer mahogany, bright gold rule, a faint inner glow */
+/* PRIMARY — the lead plaque: brighter gold frame, a warmer wood panel */
 .btn--gold {
   --frame: var(--gold);
-  --frame-line: var(--gold-bright);
-  --panel-top: #74471f;
-  --panel-bot: #41250f;
+  --panel: #5e3a1a;
   --ink: #ffe9c2;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -3px 5px rgba(0, 0, 0, 0.42),
-    inset 0 0 14px rgba(244, 208, 106, 0.14),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.26);
 }
-/* a quiet plaque (dev mock, simulate) — dim rule, dark teak */
+/* a quiet plaque (dev mock, simulate) — dimmer frame, darker teak */
 .btn--ghost {
   --frame: var(--gold-deep);
-  --frame-line: #c79e49;
-  --panel-top: #3f2913;
-  --panel-bot: #281806;
+  --panel: var(--wood-deep);
   --ink: #f0dcb4;
 }
-/* a red-lacquer placard with gold trim (irreversible actions) */
+/* a red placard with gold trim (irreversible actions) */
 .btn--danger {
   --frame: var(--gold-deep);
-  --frame-line: var(--gold-bright);
-  --panel-top: #7c2820;
-  --panel-bot: #4d130d;
+  --panel: #7c2820;
   --ink: #ffe2d4;
-}
-.btn--danger:hover:not(:disabled) {
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.55)) brightness(1.1);
 }
 /* the larger primary plaque (the live "Check in") */
 .btn--lg {
+  --cut: 13px;
   font-size: 1.1rem;
   min-height: 56px;
   padding: 0.98rem 1.4rem;
-  --cut: 15px;
 }
-/* a quiet destructive plaque (the live "Terminate") — dark teak, oxblood rule,
-   lights to full red lacquer when its ceremony is open (.is-on) */
+/* a quiet destructive plaque (the live "Terminate") — dark teak, oxblood frame;
+   lights to a full red placard when its ceremony is open (.is-on) */
 .btn--danger-ghost {
-  --frame: #834034;
-  --frame-line: #c06b58;
-  --panel-top: #3a201a;
-  --panel-bot: #251210;
+  --frame: #8a4636;
+  --panel: #3a201a;
   --ink: #ffcdbf;
 }
 .btn--danger-ghost.is-on {
   --frame: var(--gold-deep);
-  --frame-line: var(--gold-bright);
-  --panel-top: #7c2820;
-  --panel-bot: #4d130d;
+  --panel: #7c2820;
   --ink: #ffe2d4;
 }
-/* a toggled-open primary lights to polished brass (Check in is showing its gate) */
+/* a toggled-open primary lights to brass (Check in is showing its gate) */
 .btn--gold.is-on,
 .bubble__actions-primary.is-on {
   --frame: var(--gold-bright);
-  --frame-line: #fff0c4;
-  --panel-top: var(--brass);
-  --panel-bot: var(--brass-bot);
+  --panel: var(--brass);
   --ink: #2a1605;
 }
 
@@ -375,6 +319,10 @@ body.scene-locked {
 
 /* segmented tab buttons (memo note/file, interval units) — small kin of the plaque */
 .tab {
+  --frame: var(--gold-deep);
+  --panel: var(--wood);
+  --ink: #f0dcb4;
+  --cut: 9px;
   position: relative;
   isolation: isolate;
   font-family: var(--font-engrave);
@@ -383,43 +331,32 @@ body.scene-locked {
   font-size: 0.95rem;
   padding: 0.5rem 1rem;
   border: 0;
-  color: #f0dcb4;
-  background-color: var(--gold-deep);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-image:
-    linear-gradient(180deg, #3f2913, #281806),
-    linear-gradient(180deg, var(--gold-bright), var(--gold-deep));
-  background-size:
-    calc(100% - 12px) calc(100% - 12px),
-    calc(100% - 9px) calc(100% - 9px);
-  clip-path: polygon(
-    9px 0,
-    calc(100% - 9px) 0,
-    100% 9px,
-    100% calc(100% - 9px),
-    calc(100% - 9px) 100%,
-    9px 100%,
-    0 calc(100% - 9px),
-    0 9px
-  );
-  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.4);
-  filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.45));
+  color: var(--ink);
+  background-color: var(--frame);
+  clip-path: var(--plaque-clip);
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.4));
   cursor: pointer;
   transition:
     filter 0.15s ease,
-    transform 0.12s ease;
+    transform 0.12s ease,
+    background-color 0.15s ease;
+}
+.tab::before {
+  content: "";
+  position: absolute;
+  inset: var(--fw);
+  z-index: -1;
+  background-color: var(--panel);
+  clip-path: var(--plaque-clip-in);
 }
 .tab:hover {
   transform: translateY(-1px);
-  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.5)) brightness(1.06);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45)) brightness(1.06);
 }
 .tab--active {
-  color: #2a1605;
-  background-color: var(--gold-bright);
-  background-image:
-    linear-gradient(180deg, var(--brass), var(--brass-bot)),
-    linear-gradient(180deg, #fff0c4, var(--gold-deep));
+  --frame: var(--gold-bright);
+  --panel: var(--brass);
+  --ink: #2a1605;
 }
 
 /* ============================== FIELDS ============================== */
@@ -1028,10 +965,11 @@ body.scene-locked {
 }
 
 /* ============================== ABOUT BUTTON + README MODAL ============================== */
-/* The lower-left "About" control is a wood plaque too (same cartouche recipe as .btn). */
+/* The lower-left "About" control is a wood plaque too (same flat recipe as .btn). */
 .about-btn {
   --frame: var(--gold-deep);
-  --frame-line: var(--gold-bright);
+  --panel: var(--wood);
+  --cut: 10px;
   position: relative;
   isolation: isolate;
   display: inline-flex;
@@ -1041,37 +979,27 @@ body.scene-locked {
   border: 0;
   color: #f3e1ba;
   background-color: var(--frame);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-image:
-    linear-gradient(180deg, #4a2f16, #2c1a09),
-    linear-gradient(180deg, var(--frame-line), var(--frame));
-  background-size:
-    calc(100% - 14px) calc(100% - 14px),
-    calc(100% - 11px) calc(100% - 11px);
-  clip-path: polygon(
-    11px 0,
-    calc(100% - 11px) 0,
-    100% 11px,
-    100% calc(100% - 11px),
-    calc(100% - 11px) 100%,
-    11px 100%,
-    0 calc(100% - 11px),
-    0 11px
-  );
-  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.4);
-  filter: drop-shadow(0 4px 9px rgba(0, 0, 0, 0.5));
+  clip-path: var(--plaque-clip);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
   cursor: pointer;
   transition:
     filter 0.15s ease,
     transform 0.12s ease;
 }
+.about-btn::before {
+  content: "";
+  position: absolute;
+  inset: var(--fw);
+  z-index: -1;
+  background-color: var(--panel);
+  clip-path: var(--plaque-clip-in);
+}
 .about-btn:hover {
   transform: translateY(-1px);
-  filter: drop-shadow(0 7px 13px rgba(0, 0, 0, 0.55)) brightness(1.07);
+  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.5)) brightness(1.07);
 }
 .about-btn:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--gold-bright) 80%, transparent);
+  outline: 2px solid var(--gold-bright);
   outline-offset: 3px;
 }
 .about-btn__icon {
@@ -1126,38 +1054,34 @@ body.scene-locked {
   color: var(--gold-bright);
 }
 .about-modal__close {
+  --frame: var(--gold-deep);
+  --panel: var(--wood);
+  --cut: 7px;
+  position: relative;
+  isolation: isolate;
   flex: 0 0 auto;
   width: 2.1rem;
   height: 2.1rem;
   border: 0;
   color: #f3e1ba;
-  background-color: var(--gold-deep);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-image:
-    linear-gradient(180deg, #4a2f16, #2c1a09),
-    linear-gradient(180deg, var(--gold-bright), var(--gold-deep));
-  background-size:
-    calc(100% - 9px) calc(100% - 9px),
-    calc(100% - 6px) calc(100% - 6px);
-  clip-path: polygon(
-    7px 0,
-    calc(100% - 7px) 0,
-    100% 7px,
-    100% calc(100% - 7px),
-    calc(100% - 7px) 100%,
-    7px 100%,
-    0 calc(100% - 7px),
-    0 7px
-  );
+  background-color: var(--frame);
+  clip-path: var(--plaque-clip);
   cursor: pointer;
   transition: filter 0.15s ease;
+}
+.about-modal__close::before {
+  content: "";
+  position: absolute;
+  inset: var(--fw);
+  z-index: -1;
+  background-color: var(--panel);
+  clip-path: var(--plaque-clip-in);
 }
 .about-modal__close:hover {
   filter: brightness(1.12);
 }
 .about-modal__close:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
+  outline: 2px solid var(--gold-bright);
   outline-offset: 3px;
 }
 .about-modal__body {
@@ -1560,14 +1484,13 @@ body.scene-locked {
   gap: 0.5rem;
 }
 
-/* tappable quick-reply controls — small wood plaques, kin of .btn (carved from the same
-   four custom props), lit to brass when chosen (.qchip--active) */
+/* tappable quick-reply controls — small wood plaques, kin of .btn (same three colours),
+   lit to brass when chosen (.qchip--active) */
 .qchip {
   --frame: var(--gold-deep);
-  --frame-line: var(--gold-bright);
-  --panel-top: #4a2f16;
-  --panel-bot: #2e1c0b;
+  --panel: var(--wood);
   --ink: #f3e1ba;
+  --cut: 9px;
   position: relative;
   isolation: isolate;
   font-family: var(--font-engrave);
@@ -1579,44 +1502,34 @@ body.scene-locked {
   border: 0;
   color: var(--ink);
   background-color: var(--frame);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-image:
-    linear-gradient(180deg, var(--panel-top), var(--panel-bot)),
-    linear-gradient(180deg, var(--frame-line), var(--frame));
-  background-size:
-    calc(100% - 13px) calc(100% - 13px),
-    calc(100% - 10px) calc(100% - 10px);
-  clip-path: polygon(
-    10px 0,
-    calc(100% - 10px) 0,
-    100% 10px,
-    100% calc(100% - 10px),
-    calc(100% - 10px) 100%,
-    10px 100%,
-    0 calc(100% - 10px),
-    0 10px
-  );
-  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.4);
-  filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.45));
+  clip-path: var(--plaque-clip);
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.4));
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
   cursor: pointer;
   transition:
     filter 0.15s ease,
-    transform 0.12s ease;
+    transform 0.12s ease,
+    background-color 0.15s ease;
+}
+.qchip::before {
+  content: "";
+  position: absolute;
+  inset: var(--fw);
+  z-index: -1;
+  background-color: var(--panel);
+  clip-path: var(--plaque-clip-in);
 }
 .qchip:hover {
   transform: translateY(-1px);
-  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.5)) brightness(1.06);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45)) brightness(1.06);
 }
 .qchip:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--gold-bright) 80%, transparent);
+  outline: 2px solid var(--gold-bright);
   outline-offset: 3px;
 }
 .qchip--active {
   --frame: var(--gold-bright);
-  --frame-line: #fff0c4;
-  --panel-top: var(--brass);
-  --panel-bot: var(--brass-bot);
+  --panel: var(--brass);
   --ink: #2a1605;
 }
 
