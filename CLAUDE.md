@@ -2,7 +2,7 @@
 
 **Dead Men Tell Tales**: a dead man's switch for encrypted documents on Hedera + World ID + Ledger + drand. Encrypt a memo, arm with a Ledger signature + World proof, check in (as a verified human) to postpone, go silent and the Hedera network authorizes release — a tlock capsule is published and the memo becomes decryptable by anyone.
 
-Plan: [PLAN.md](PLAN.md). Sourced rationale: [docs/EVALUATION.md](docs/EVALUATION.md). **This file is the source of truth for design decisions — do not re-litigate the items below; they were verified against primary sources.** If reality contradicts a decision, stop and flag it for a human, don't silently work around it.
+Plan: [PLAN.md](PLAN.md). Sourced rationale: [docs/EVALUATION.md](docs/EVALUATION.md). **This file is the source of truth for design decisions — do not re-litigate the items below; they were verified against primary sources.** If reality contradicts a decision, stop and flag it for a human, don't silently work around it. Phase-1/G0 spike results (live testnet, 2026-06-12) are in [spikes/FINDINGS.md](spikes/FINDINGS.md); items tagged **[G0]** below were verified on-chain.
 
 ## Toolchain (non-negotiable)
 - **pnpm + Node everywhere. No Bun.** (`@hiero-ledger/sdk` crashes under Bun's `node:http2`.) Run `pnpm install`, `pnpm dev`, `node watcher/index.js`.
@@ -33,12 +33,15 @@ Endpoints: `GET /api/v1/transactions/{transactionId}` (by id) and `GET /api/v1/t
 `FileAppend` requires the file's keys and forbids immutable files, so "create empty-KeyList then append" is impossible. Instead:
 - ≤4 KB ciphertext: single `FileCreate` with empty KeyList (immutable from creation).
 - >4 KB: `FileCreate`(agent key) → `FileAppend` chunks → `FileUpdate(keys = empty KeyList)` to seal. Max file 1 MB.
+- **[G0] Verified on testnet** (S3): fast-path + create→append→seal both round-trip byte-identical; the sealed file rejects further `FileAppend` AND `FileUpdate`. SDK gotcha: `FileCreateTransaction.setKeys()` takes an **array** (`[pubkey]`); empty `KeyList` = immutable.
+- **[G0] Cost (measured): HFS ≈ 1 ℏ/KB, FLAT** — shortening file expiration does NOT reduce it (2 KB cost 2.09 ℏ at 1-day ≈ 2 ℏ at 90-day). So the >4 KB path is costly (1 MB ≈ ~1000 ℏ) — **prefer the ≤4 KB fast path**. HCS messages cost ≈ 0.01 ℏ/KB (**~100× cheaper**, mirror-served, no `FileContentsQuery` proxy): storing large ciphertext in HCS instead of HFS is a **Phase 2 freeze decision** (it would amend C2 — don't swap silently).
 
 ## N10 — Rung privacy invariant (do not violate)
 **Capsules (tlock rungs) stay private, agent-held, until release is authorized.** Never put a capsule in a scheduled transaction body or any public artifact before release — scheduled bodies are public from `ScheduleCreate`, and a published capsule decrypts the instant its drand round passes regardless of check-ins. The scheduled message carries only the minimal `RELEASE_AUTHORIZED{seq,nonce}` event; the **watcher** publishes the capsule as its reaction.
 
 ## Crypto / ladder
 - **K** = random AES-256-GCM key, in memory at arm ONLY. Mint the ladder `tlock(K, roundForTime(armTime + i·interval))` for `i=1..N` (N=20), hand sealed rungs to the agent, discard K. Never store K. Lost state ⇒ re-arm.
+- **[G0] tlock-js@0.9 API:** the time→round helper is **`roundAt(timeMs, chainInfo)`** (the conceptual `roundForTime`); `mainnetClient()` already targets **quicknet** (`52db9ba…`, period 3 s, `bls-unchained-g1-rfc9380`); an armored rung ≈ **601 B**.
 - `policyHash = hash(nullifier ‖ ciphertextHash ‖ terms ‖ nonce)`.
 - Check-in advances `liveIdx` along the fixed rung grid (NOT `now + interval`); burns the soonest rung; reschedules.
 - Signal binding: World `signal = hash(nextRungHash ‖ newDeadline ‖ topicId ‖ seq)`; backend recomputes and re-enforces.
@@ -46,7 +49,7 @@ Endpoints: `GET /api/v1/transactions/{transactionId}` (by id) and `GET /api/v1/t
 ## World ID 4.0 (per `docs.world.org/world-id/SKILL.md` — the World workstream's primary source)
 - Portal via Developer Portal MCP (`https://developer.world.org/api/mcp`). **`signing_key` is returned once → server-only secret, never `NEXT_PUBLIC_*`.**
 - Backend signs `rp_context` (`signRequest` from `@worldcoin/idkit-core/signing`) — never sign on the client.
-- Verify: POST proof **as-is, no re-encoding** to `https://developer.world.org/api/v4/verify/{rp_id}`. Preset `orbLegacy`.
+- Verify: POST proof **as-is, no re-encoding** to `https://developer.world.org/api/v4/verify/{rp_id}`. Preset `orbLegacy`. **[G0] The body MUST also include top-level `action`** (and the bound `signal`) — without it the endpoint returns `400 "action is required for uniqueness proofs"`. Backend `rp_context` signing (`signRequest` from `@worldcoin/idkit-core/signing`) returns `{rp_id, nonce, created_at, expires_at, signature}`; verified.
 - Identifier = **nullifier**; store `(action, nullifier)` with a uniqueness check (it's a uint256 — decimal string).
 - **Triple environment match** (silent failure otherwise): IDKit `environment` ⟷ action env ⟷ Simulator-vs-real-App. Build a staging/production toggle. `app_mode: "external"` + QR for the standalone web app.
 
@@ -56,6 +59,8 @@ Endpoints: `GET /api/v1/transactions/{transactionId}` (by id) and `GET /api/v1/t
 - On check-in: **create the new schedule BEFORE deleting the old** (crash window then errs toward release).
 - `RELEASE_AUTHORIZED` ≤1 KB (scheduled messages can't chunk). Reveal reads HFS via a backend `FileContentsQuery` proxy (mirror serves no file bytes).
 - Watcher is **idempotent** — tolerate duplicate `RELEASE_AUTHORIZED`.
+- **[G0] Schedule firing lag ≈ 34 ms** after expiry on testnet (S2) — the M1/M2 release bound. Deleted schedule never fires; admin-keyless `ScheduleDelete` → `SCHEDULE_IS_IMMUTABLE`.
+- **[G0] Operator key parsing:** a raw-hex private key is ambiguous ECDSA/ED25519 and `fromStringDer` mis-parses it (→ `INVALID_SIGNATURE`); disambiguate explicitly via `HEDERA_KEY_TYPE` — **testnet faucet accounts are `ECDSA_SECP256K1`**.
 
 ## AI SDK v5 / chat
 - Client-executed tools: `onToolCall` + **`addToolOutput({tool, toolCallId, output})`** (not `addToolResult`). Don't `await` inside `onToolCall`; check `toolCall.dynamic`; `sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls`.
@@ -76,7 +81,7 @@ Endpoints: `GET /api/v1/transactions/{transactionId}` (by id) and `GET /api/v1/t
 ```
 
 ## Env (never client-exposed: plaintext, K, Ledger key, World signing_key)
-`HEDERA_OPERATOR_ID` / `HEDERA_OPERATOR_KEY` · `WORLD_APP_ID` / `WORLD_RP_ID` / `WORLD_ACTION` / `WORLD_SIGNING_KEY` · `ANTHROPIC_API_KEY` · `NEXT_PUBLIC_WORLD_APP_ID` etc.
+`HEDERA_OPERATOR_ID` / `HEDERA_OPERATOR_KEY` / `HEDERA_KEY_TYPE` · `WORLD_APP_ID` / `WORLD_RP_ID` / `WORLD_ACTION` / `WORLD_SIGNING_KEY` · `ANTHROPIC_API_KEY` · `NEXT_PUBLIC_WORLD_APP_ID` etc.
 
 ## Honest residuals (keep them in the README/trust slide — the design's credibility is its honesty)
 **delay** (agent stalls a postpone — detectable via signal binding) · **shirk** (agent fails to publish — couriers roadmap) · **stale-read** (agent retains a burned rung, decrypts it after its round passes — bounded to an already-armed deadline, never early). The agent can NEVER read early, forge an authorization, or destroy evidence. Possession-not-permission (FUNDING moves to the agent) and cancel-is-honored-not-enforced are accepted MVP tradeoffs with roadmap fixes.
