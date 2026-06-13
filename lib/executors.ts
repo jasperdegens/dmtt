@@ -75,8 +75,9 @@ export async function arm(
       expectedMemo: armMemo(input.policyHash),
       debitAccountId: artifacts.ledgerAccountId,
     });
-    if (!r.ok) {
-      return fail("ARM_TX_UNVERIFIED", "mirror did not confirm the arm transfer");
+    const minTinybar = Math.floor(artifacts.fundingHbar * 100_000_000);
+    if (!r.ok || (r.debitAmountTinybar != null && Math.abs(r.debitAmountTinybar) < minTinybar)) {
+      return fail("ARM_TX_UNVERIFIED", "mirror did not confirm the funded arm transfer");
     }
   }
 
@@ -179,7 +180,8 @@ export async function checkin(
       if (!res.ok) {
         return { next: current, result: fail("WORLD_VERIFY_FAILED", res.detail ?? "verify rejected") };
       }
-      if (artifacts.proof.nullifier_hash !== current.policy.nullifier) {
+      const verifiedNullifier = res.nullifier ?? artifacts.proof.nullifier_hash;
+      if (verifiedNullifier !== current.policy.nullifier || artifacts.proof.nullifier_hash !== current.policy.nullifier) {
         return {
           next: current,
           result: fail("WRONG_NULLIFIER", "proof nullifier ≠ enrolled policy.nullifier"),

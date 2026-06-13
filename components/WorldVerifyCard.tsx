@@ -23,6 +23,7 @@ import {
 } from "@worldcoin/idkit";
 import type {
   Nullifier,
+  WorldProof,
   RpContextResponse,
   WorldEnvironment,
   WorldVerifyResponse,
@@ -30,6 +31,7 @@ import type {
 
 export interface WorldVerified {
   nullifier: Nullifier;
+  proof?: WorldProof;
 }
 
 const APP_ID = process.env.NEXT_PUBLIC_WORLD_APP_ID ?? "";
@@ -88,7 +90,11 @@ export function WorldVerifyCard({
       if (!body.ok || !body.nullifier) {
         throw new Error(body.detail ?? "verification rejected");
       }
-      onVerified({ nullifier: body.nullifier });
+      const maybe = result as unknown as Partial<WorldProof>;
+      const proof = typeof maybe.proof === "string" && typeof maybe.merkle_root === "string" && typeof maybe.nullifier_hash === "string"
+        ? { proof: maybe.proof, merkle_root: maybe.merkle_root, nullifier_hash: maybe.nullifier_hash, verification_level: String(maybe.verification_level ?? "orb") }
+        : undefined;
+      onVerified({ nullifier: body.nullifier, proof });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -100,6 +106,7 @@ export function WorldVerifyCard({
   function simulate() {
     onVerified({
       nullifier: "12345678901234567890123456789012345678901234567890",
+      proof: { proof: "simulated", merkle_root: "simulated", nullifier_hash: "12345678901234567890123456789012345678901234567890", verification_level: "orb" },
     });
   }
 
