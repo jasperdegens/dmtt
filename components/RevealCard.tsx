@@ -36,6 +36,11 @@ export function RevealCard({ view }: { view: SwitchView }) {
 
   const capsuleB64 = publishedCapsule(view);
   const released = view.status === "RELEASED" && capsuleB64 !== null;
+  // RELEASED but the watcher hasn't posted CAPSULE_PUBLISHED yet — distinguishable
+  // from a still-sealed (ACTIVE) switch: release HAS fired, the capsule is moments away.
+  const awaitingCapsule = view.status === "RELEASED" && capsuleB64 === null;
+  // Terminal-not-released: a cancelled switch never releases — its rungs are shredded.
+  const cancelled = view.status === "CANCELLED";
 
   async function reveal() {
     if (!capsuleB64) return;
@@ -64,7 +69,17 @@ export function RevealCard({ view }: { view: SwitchView }) {
     <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
       <h2 className="text-lg font-semibold">The memo</h2>
 
-      {!released ? (
+      {cancelled ? (
+        <p className="mt-2 text-sm text-neutral-400">
+          Cancelled. The owner stood the switch down — its rungs were shredded and this
+          memo will never be released. Nothing to reveal.
+        </p>
+      ) : awaitingCapsule ? (
+        <p className="mt-2 text-sm text-amber-300">
+          Released — awaiting the capsule. Release has been authorized; the watcher is
+          publishing the decryptable capsule now. Refresh in a moment to reveal the memo.
+        </p>
+      ) : !released ? (
         <p className="mt-2 text-sm text-neutral-400">
           Sealed. This memo becomes decryptable only after the switch is released —
           when its drand round passes and the watcher publishes the capsule. Check back

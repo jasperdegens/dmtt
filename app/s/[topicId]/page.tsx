@@ -10,6 +10,7 @@ import { headers } from "next/headers";
 
 import { StatusCard } from "@/components/StatusCard.tsx";
 import { RevealCard } from "@/components/RevealCard.tsx";
+import { CheckinCard } from "@/components/CheckinCard.tsx";
 import { SwitchActions } from "@/components/SwitchActions.tsx";
 import type { SwitchView } from "@/lib/types.ts";
 
@@ -46,11 +47,19 @@ export default async function SwitchPage({
 
       <StatusCard topicId={topicId} />
 
-      {view ? (
+      {/* The owner's affordances — ACTIVE-only. CheckinCard is the postponement gate
+          (it shows the imminent-release notice when the ladder is spent); SwitchActions
+          is the device-signed cancel. The initial server-loaded view is enough — a
+          successful action reloads, and StatusCard keeps the live status fresh. */}
+      {view && view.status === "ACTIVE" ? (
         <>
+          <CheckinCard view={view} />
           <SwitchActions view={view} />
-          <RevealCard view={view} />
         </>
+      ) : null}
+
+      {view ? (
+        <RevealCard view={view} />
       ) : (
         <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
           <h2 className="text-lg font-semibold">The memo</h2>
