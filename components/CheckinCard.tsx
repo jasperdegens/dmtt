@@ -43,8 +43,48 @@ type Status =
   | { kind: "success"; result: CheckinResult }
   | { kind: "error"; error: ExecError | { code: string; message: string } };
 
-export function CheckinCard({ view }: { view: SwitchView }) {
+export function CheckinCard({
+  view,
+  onCheckedIn,
+}: {
+  view: SwitchView;
+  /** When provided (the chat live panel), called on a successful check-in so the parent
+   *  can refresh the watched view + record it in the transcript — no full-page reload.
+   *  When absent (the /s/[topicId] route) the success panel reloads to re-read the view. */
+  onCheckedIn?: (result: CheckinResult) => void;
+}) {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+
+  // Show the success of the check-in you JUST made, regardless of the now-advanced view
+  // (a fresh `view` would otherwise re-derive the next rung and hide this confirmation).
+  if (status.kind === "success") {
+    const r = status.result;
+    return (
+      <div className="rounded-xl border border-emerald-900 bg-neutral-950 p-5">
+        <h2 className="text-lg font-semibold text-emerald-300">Checked in.</h2>
+        <p className="mt-2 text-sm text-neutral-400">
+          Release postponed. You burned the soonest rung and advanced to seq{" "}
+          <span className="font-mono text-neutral-200">{r.seq}</span> (rung{" "}
+          <span className="font-mono text-neutral-200">{r.liveIdx}</span>).
+        </p>
+        <p className="mt-1 text-sm text-neutral-400">
+          New deadline:{" "}
+          <span className="font-mono text-neutral-200">
+            {new Date(r.newDeadline).toUTCString()}
+          </span>
+        </p>
+        <button
+          type="button"
+          onClick={() =>
+            onCheckedIn ? setStatus({ kind: "idle" }) : window.location.reload()
+          }
+          className="mt-4 inline-block rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
+        >
+          {onCheckedIn ? "Done" : "Refresh status"}
+        </button>
+      </div>
+    );
+  }
 
   const built = buildCheckinRequest(view);
 
@@ -107,39 +147,13 @@ export function CheckinCard({ view }: { view: SwitchView }) {
       }
       const result = (await res.json()) as CheckinResult;
       setStatus({ kind: "success", result });
+      onCheckedIn?.(result);
     } catch (e) {
       setStatus({
         kind: "error",
         error: { code: "NETWORK", message: e instanceof Error ? e.message : String(e) },
       });
     }
-  }
-
-  if (status.kind === "success") {
-    const r = status.result;
-    return (
-      <div className="rounded-xl border border-emerald-900 bg-neutral-950 p-5">
-        <h2 className="text-lg font-semibold text-emerald-300">Checked in.</h2>
-        <p className="mt-2 text-sm text-neutral-400">
-          Release postponed. You burned the soonest rung and advanced to seq{" "}
-          <span className="font-mono text-neutral-200">{r.seq}</span> (rung{" "}
-          <span className="font-mono text-neutral-200">{r.liveIdx}</span>).
-        </p>
-        <p className="mt-1 text-sm text-neutral-400">
-          New deadline:{" "}
-          <span className="font-mono text-neutral-200">
-            {new Date(r.newDeadline).toUTCString()}
-          </span>
-        </p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="mt-4 inline-block rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
-        >
-          Refresh status
-        </button>
-      </div>
-    );
   }
 
   return (

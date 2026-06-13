@@ -54,7 +54,8 @@ export type ChatEvent =
   | { type: "TERMS_SET"; terms: Terms }
   | { type: "WORLD_VERIFIED"; nullifier: string }
   | { type: "SIGNED"; armTxId: string; ledgerAccountId: string }
-  | { type: "ARM" }
+  | { type: "ARM"; topicId?: string }
+  | { type: "LOAD_SWITCH"; topicId: string }
   | { type: "PARSE_TEXT"; text: string }
   | { type: "RESET" };
 
@@ -119,7 +120,23 @@ export function reduce(ctx: ChatContext, ev: ChatEvent): ChatContext {
           error: "cannot arm: missing memo, terms, nullifier, or signature",
         };
       }
-      return { ...ctx, state: "ARMED", suggestion: undefined, error: undefined };
+      // Armed. `topicId` arrives once the client-side assembly (upload + ladder mint +
+      // POST /api/arm) returns it; the chat then stays in-place and watches it (Phase 7
+      // SPA continuity). Absent topicId still reaches ARMED (the existing scripted walk).
+      return {
+        ...ctx,
+        state: "ARMED",
+        topicId: ev.topicId ?? ctx.topicId,
+        suggestion: undefined,
+        error: undefined,
+      };
+
+    // ── LOAD_SWITCH — restore an EXISTING armed switch into the chat (Phase 7). ──
+    // Opening a topic URL (`/?t=<topicId>`) re-enters the SAME chat interface with the
+    // switch loaded and live; this is a fresh ARMED context keyed to the topic. It
+    // synthesizes NO setup artifacts — the live view is fetched from the public mirror.
+    case "LOAD_SWITCH":
+      return { state: "ARMED", topicId: ev.topicId };
 
     // ── PARSE_TEXT — proposal ONLY. Never advances, never synthesizes. ────────
     case "PARSE_TEXT": {
@@ -134,6 +151,38 @@ export function reduce(ctx: ChatContext, ev: ChatEvent): ChatContext {
 
     default:
       return ctx;
+  }
+}
+
+// ── Deterministic narration (pure; works with the LLM offline) ───────────────
+// One calm status line per resulting step. /api/chat seeds its (optional) LLM polish
+// from this, and the client falls back to it when the route is unreachable — so the
+// narration NEVER depends on a model. It only describes the machine's CURRENT state;
+// it can never drive a transition (reduce already decided that).
+
+export function narrate(ctx: ChatContext): string {
+  if (ctx.error) {
+    return `I can't do that: ${ctx.error}. Each step needs its real artifact — I can't skip ahead.`;
+  }
+  switch (ctx.state) {
+    case "IDLE":
+      return "Let's set up your switch. First, write the memo — it's encrypted in your browser before anything leaves your device.";
+    case "MEMO":
+      return "Write the memo in the card above — it's encrypted in your browser before anything leaves your device.";
+    case "TERMS":
+      return "Memo captured (encrypted locally). Now choose your terms: how often you'll check in, the funding, and an optional public bulletin. You can also just type something like “2 minutes” or “0.1 hbar”.";
+    case "WORLD":
+      return "Terms set. Next, verify you're a unique human with World ID — this is the authority that lets you postpone later.";
+    case "SIGN":
+      return "Verified. Now sign the arm funding transfer on your Ledger — that's the device authority that arms the switch.";
+    case "ARMED":
+      return "Armed. Your switch is live; check in before each deadline to postpone, or it releases when you go silent.";
+    case "CHECKIN":
+      return "Checking in postpones the next release. Verify with World ID to advance one rung.";
+    case "CANCEL":
+      return "Cancelling requires a device-signed transfer; that's the only way to stand the switch down.";
+    default:
+      return "Ready.";
   }
 }
 
