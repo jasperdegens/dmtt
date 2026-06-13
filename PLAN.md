@@ -9,7 +9,7 @@ This plan is written so each phase can be executed as an **agent team** — one 
 - **Contracts-first parallelism.** Phase 2 freezes every interface; after that, workstreams share *only* the contracts and run independently against mocks. Contract changes after the freeze require a human decision.
 - **Every phase ends with a runnable verification, not code-complete.** Each workstream brief carries a `Verify:` block — command + observable pass criteria, *including negative tests*. A phase closes only when its verifications pass. Gates (G0 / M1 / M2) are human-run, end-to-end, on testnet.
 - **The human is the scarce resource for exactly four things:** device/phone ceremonies, workshops/booth, gate sign-off, demo/video. Everything else is delegated. Core path (executors, keys, watcher, ceremonies) merges only with review; UI lands looser.
-- **No scope cuts.** Chat shell is core architecture (the single mutating surface) — it lands in wave 1. Direct-funding arm + device-signed cancel, release-bounty payment (+ optional per-check-in service fee), LLM bulletin, ≤1 MB file path: all in. ProveKit/watchtower stay on their gates, with one rule: **nothing touches the core path after T+30.**
+- **No scope cuts.** Chat shell is core architecture (the single mutating surface) — it lands in wave 1. Direct-funding arm + device-signed cancel, release-bounty payment (+ optional per-check-in service fee), LLM bulletin, ≤1 MB file path: all in. ProveKit/watchtower stay on their stretch gates after the UI overhaul, with one rule: **nothing touches the live-demo core path after Phase 8.**
 - **Sleep is scheduled** — 4 h after M1, with an overnight agent batch assigned before sleeping and verified on wake.
 - **Toolchain: pnpm + Node everywhere.** No Bun anywhere in the repo (gRPC/http2 risk — see EVALUATION N1).
 
@@ -91,15 +91,12 @@ Assigned before sleeping: README skeleton + trust tables (incl. **delay / shirk 
   ① device displays memo+amount · ② arm accepted only after mirror verification · ③ `ARMED` carries policy + rung hashes · ④ check-in from the WRONG World account rejected (negative) · ⑤ valid check-in reschedules + posts proof · ⑥ replayed proof rejected (negative) · ⑦ go silent → `RELEASE_AUTHORIZED` fires within bound · ⑧ capsule published + bounty paid by the agent · ⑨ reveal page self-decrypts · ⑩ on a second switch: cancel memo → `CANCELLED` + schedule gone.
   *Contingencies:* Ledger red → software-key path, documented; World red → staging+simulator end-to-end (still a real ZK proof; say so in the README).
 
-## Phase 6 · T23–T27 — Full-scope completion + switch action UI + stretch gates (parallel)
+## Phase 6 · T23–T27 — Full-scope completion + switch action UI (parallel)
 
 - **Switch action UI:** add explicit check-in and cancel controls on the per-switch page (`/s/[topicId]`). Check-in must compute the next-rung signal, run the World proof flow, call `POST /api/checkin`, and refresh status. Cancel must guide the device-signed cancel ceremony (stub until real Ledger path is wired), call `POST /api/cancel`, and refresh status.
   **Verify:** from an ACTIVE switch, click Check in → `CHECKIN_VERIFIED` posts and deadline advances; click Cancel on a second switch → `CANCELLED` posts, schedule is gone, ladder is shredded; wrong/stale check-in and bad cancel artifact surface errors without mutating the switch.
 - **Agents:** QR for check-in URL, HashScan links on every event, failure toasts, demo staging/sim toggle, ≤1 MB file path verified **at 1 MB**, docs polish.
   **Verify:** click-through script of all four states (arm / active-check-in / released-reveal / cancelled) with zero console errors; 1 MB arm→reveal round-trip.
-- **ProveKit gate (T+23):** only if M2 green → 1-h agent spike (compile Noir circuit, prove 1 KB SHA-256 preimage, time it). **Verify to proceed:** browser-feasible proving time + status-page verification. Scope ceiling: text ≤1 KB, one predicate. **Land by T+30 or drop without regret.**
-- **Watchtower gate (T+26):** only if everything green → ~50-line independent verifier + 2-of-2 schedule-admin KeyList **on a separate demo switch only** (live-demo switch keeps agent-only admin). **Verify:** compromised-backend simulation — `ScheduleDelete` without the watchtower co-sig fails on-chain.
-- **T+26 health check — defer order (not scope cut):** watchtower → ProveKit → narration flourishes. Core invariants never deferred.
 
 ## Phase 7 · T27–T29 — Chat-flow UX conversion
 
@@ -113,13 +110,19 @@ Assigned before sleeping: README skeleton + trust tables (incl. **delay / shirk 
 - **Apply the overhaul after core flows are stable.** Redesign the chat shell, switch status/reveal page, buttons, empty/error states, HashScan links, QR/check-in/cancel surfaces, and release state. Preserve all security copy that matters: plaintext never leaves browser, `K` is discarded, capsule publishes only after release.
 - **Verify:** desktop and mobile screenshots for arm, active, check-in, cancelled, released/reveal states; no overlapping text; all buttons fit; zero console errors; flow still passes the M2 checklist.
 
-## Phase 9 · T32–T34 — Submission assets
+## Phase 9 · T32–T33 — Stretch gates
+
+- **ProveKit gate:** only if M2 and Phase 8 are green → 1-h agent spike (compile Noir circuit, prove 1 KB SHA-256 preimage, time it). **Verify to proceed:** browser-feasible proving time + status-page verification. Scope ceiling: text ≤1 KB, one predicate. **Land by T+33 or drop without regret.**
+- **Watchtower gate:** only if everything is green → ~50-line independent verifier + 2-of-2 schedule-admin KeyList **on a separate demo switch only** (live-demo switch keeps agent-only admin). **Verify:** compromised-backend simulation — `ScheduleDelete` without the watchtower co-sig fails on-chain.
+- **T+33 health check — defer order (not scope cut):** watchtower → ProveKit → narration flourishes. Core invariants never deferred.
+
+## Phase 10 · T33–T34 — Submission assets
 
 - **Agents draft, human edits:** README (why each sponsor is structural; keys/trust table; **delay / shirk / stale-read** residuals stated honestly; corrected-claims notes) · Ledger feedback doc (app-hedera gap list with sources, no DMK Hedera signer, Agent Stack preview feedback) · submission texts + track checkboxes (Hedera AI & Agentic Payments · Hedera No Solidity · World Track B · Ledger).
 - **Human:** record the ≤5-min video during a T+33 rehearsal (**must show the agent's autonomous Hedera payment**); edit ≤1 h.
 - **Verify:** README claims cross-checked against code by a **fresh-context review agent** (catches drift); video shows the payment tx on HashScan; commit history readable (no giant squashes).
 
-## Phase 10 · T34–T36 — Demo engineering, freeze, submit
+## Phase 11 · T34–T36 — Demo engineering, freeze, submit
 
 - **Core freeze T+32 · UI/content freeze T+34 · submit T+35.** Never T+36.
 - **Verify = two full rehearsals** (5-min terms, 60 s capsule) including failure drills: venue Wi-Fi → phone hotspot · World App flake → staging/sim toggle · Ledger flake → pre-armed backup switch · testnet outage → rehearsal screen recording. The demo is not "verified" until one rehearsal is touch-free.
