@@ -25,6 +25,7 @@
     "@ai-sdk/anthropic": "^2.0.0",
     "@ai-sdk/react": "^2.0.0",
     "@hiero-ledger/sdk": "^2.81.0",
+    "@noble/hashes": "^1.6.0",
     "@worldcoin/idkit": "^4.1.8",
     "@worldcoin/idkit-core": "^4.1.8",
     "ai": "^5.0.0",
