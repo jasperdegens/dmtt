@@ -49,7 +49,7 @@ Endpoints: `GET /api/v1/transactions/{transactionId}` (by id) and `GET /api/v1/t
 ## World ID 4.0 (per `docs.world.org/world-id/SKILL.md` — the World workstream's primary source)
 - Portal via Developer Portal MCP (`https://developer.world.org/api/mcp`). **`signing_key` is returned once → server-only secret, never `NEXT_PUBLIC_*`.**
 - Backend signs `rp_context` (`signRequest` from `@worldcoin/idkit-core/signing`) — never sign on the client.
-- Verify: POST proof **as-is, no re-encoding** to `https://developer.world.org/api/v4/verify/{rp_id}`. Preset `orbLegacy`. **[G0] The body MUST also include top-level `action`** (and the bound `signal`) — without it the endpoint returns `400 "action is required for uniqueness proofs"`. Backend `rp_context` signing (`signRequest` from `@worldcoin/idkit-core/signing`) returns `{rp_id, nonce, created_at, expires_at, signature}`; verified.
+- Verify: POST the full IDKit response **as-is, no re-encoding** to `https://developer.world.org/api/v4/verify/{rp_id}`. Preset `orbLegacy`. The payload must carry `responses[]`, top-level `action`, and the matching `environment`; without `action` the endpoint returns `400 "action is required for uniqueness proofs"`. Backend `rp_context` signing (`signRequest` from `@worldcoin/idkit-core/signing`) returns `{rp_id, nonce, created_at, expires_at, signature}`; verified.
 - Identifier = **nullifier**; store `(action, nullifier)` with a uniqueness check (it's a uint256 — decimal string).
 - **Triple environment match** (silent failure otherwise): IDKit `environment` ⟷ action env ⟷ Simulator-vs-real-App. Build a staging/production toggle. `app_mode: "external"` + QR for the standalone web app.
 
@@ -81,7 +81,7 @@ Endpoints: `GET /api/v1/transactions/{transactionId}` (by id) and `GET /api/v1/t
 ```
 
 ## Env (never client-exposed: plaintext, K, Ledger key, World signing_key)
-`HEDERA_OPERATOR_ID` / `HEDERA_OPERATOR_KEY` / `HEDERA_KEY_TYPE` · `WORLD_APP_ID` / `WORLD_RP_ID` / `WORLD_ACTION` / `WORLD_SIGNING_KEY` · `ANTHROPIC_API_KEY` · `NEXT_PUBLIC_WORLD_APP_ID` etc.
+`HEDERA_OPERATOR_ID` / `HEDERA_OPERATOR_KEY` / `HEDERA_KEY_TYPE` · `WORLD_APP_ID` / `WORLD_RP_ID` / `WORLD_ACTION` / `WORLD_ENV` / `WORLD_SIGNING_KEY` · `ANTHROPIC_API_KEY` · `NEXT_PUBLIC_WORLD_APP_ID` / `NEXT_PUBLIC_WORLD_ACTION` / `NEXT_PUBLIC_WORLD_ENV` etc.
 
 ## Honest residuals (keep them in the README/trust slide — the design's credibility is its honesty)
 **delay** (agent stalls a postpone — detectable via signal binding) · **shirk** (agent fails to publish — couriers roadmap) · **stale-read** (agent retains a burned rung, decrypts it after its round passes — bounded to an already-armed deadline, never early). The agent can NEVER read early, forge an authorization, or destroy evidence. Possession-not-permission (FUNDING moves to the agent) and cancel-is-honored-not-enforced are accepted MVP tradeoffs with roadmap fixes.
