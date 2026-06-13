@@ -15,6 +15,8 @@ import assert from "node:assert/strict";
 import {
   mirrorVerifyTransfer,
   topicMessagesUrl,
+  accountTransactionsUrl,
+  parseAccountTransactions,
   selectMedium,
   splitChunks,
   joinChunks,
@@ -189,6 +191,50 @@ test("topicMessagesUrl: omits sequence filter for first page / afterSeq 0", () =
     topicMessagesUrl(BASE, "0.0.9221027", 2),
     `${BASE}/api/v1/topics/0.0.9221027/messages?limit=100&order=asc&sequencenumber=gt:2`,
   );
+});
+
+// ── accountTransactionsUrl / parseAccountTransactions (cancel backstop) ────────
+
+test("accountTransactionsUrl: account.id query form (NOT /accounts/{id}/transactions), gt: cursor", () => {
+  // First scan (no cursor) → no timestamp filter.
+  assert.equal(
+    accountTransactionsUrl(BASE, "0.0.2000000"),
+    `${BASE}/api/v1/transactions?account.id=0.0.2000000&order=asc&limit=100`,
+  );
+  // Subsequent scans page forward with timestamp=gt:<secs.nanos>.
+  assert.equal(
+    accountTransactionsUrl(BASE, "0.0.2000000", "1760000100.000000000"),
+    `${BASE}/api/v1/transactions?account.id=0.0.2000000&order=asc&limit=100&timestamp=gt:1760000100.000000000`,
+  );
+});
+
+test("parseAccountTransactions: maps snake_case rows; null memo + missing transfers safe", () => {
+  const rows = parseAccountTransactions({
+    transactions: [
+      {
+        transaction_id: "0.0.1234567-1760000100-000000000",
+        result: "SUCCESS",
+        memo_base64: Buffer.from("DMTT:CANCEL:0.0.7777777", "utf8").toString("base64"),
+        consensus_timestamp: "1760000100.000000000",
+        transfers: [
+          { account: "0.0.1234567", amount: -1 },
+          { account: "0.0.2000000", amount: 1 },
+        ],
+      },
+      { transaction_id: "0.0.9-1760000200-000000000", result: "SUCCESS", memo_base64: null },
+    ],
+  });
+  assert.equal(rows.length, 2);
+  assert.equal(
+    Buffer.from(rows[0].memoBase64 ?? "", "base64").toString("utf8"),
+    "DMTT:CANCEL:0.0.7777777",
+  );
+  assert.equal(rows[0].transfers[0].amount, -1);
+  assert.equal(rows[1].memoBase64, null, "null memo passes through (guarded before decode)");
+  assert.deepEqual(rows[1].transfers, [], "missing transfers → []");
+  // Non-array / empty input is tolerated (never throws on junk).
+  assert.deepEqual(parseAccountTransactions(null), []);
+  assert.deepEqual(parseAccountTransactions({}), []);
 });
 
 // ── selectMedium ─────────────────────────────────────────────────────────────
