@@ -279,7 +279,7 @@ These are the executor-facing slices; WS-A/WS-B own their full module APIs.
 | `GET /api/switch/[topicId]` | → `SwitchView` | **public** projection; **never** exposes un-fired `ladder[].capsuleB64` (N10). Carries `rungHashes[]`, `events[]` (incl. the one post-release `CAPSULE_PUBLISHED`), `currentDeadline` (`null` when terminal). |
 | `GET /api/file/[fileId]` | → `application/octet-stream` (`FileProxyMeta` describes it) | backend `FileContentsQuery` proxy for **HFS** ciphertext (mirror serves no file bytes). HCS ciphertext is read from the mirror directly. |
 | `POST /api/world/rp-context` | `RpContextRequest{signal}` → `RpContextResponse{rp_id, nonce, created_at, expires_at, signature}` | backend signs with the **server-only** `signing_key` (`signRequest`); never `NEXT_PUBLIC_*`. |
-| `POST /api/world/verify` | `WorldVerifyRequest{proof, action, signal}` → `WorldVerifyResponse{ok, nullifier?, detail?}` | forwards the proof **as-is**; body **must** include top-level `action` (G0) + the bound `signal`. |
+| `POST /api/world/verify` | `WorldVerifyRequest{idkitResponse, action, signal}` → `WorldVerifyResponse{ok, nullifier?, detail?}` | forwards the full IDKit response **as-is** with `WORLD_ENV`; the Developer Portal payload must include `responses[]` and top-level `action`. |
 
 Mutation routes (`arm` / `checkin` / `cancel`, and `/api/chat`) call the §8
 executors; their request bodies are the executor `input + artifacts`. **Plaintext
@@ -308,6 +308,8 @@ anything malformed or cross-typed (the negative fixtures assert this).
 | `WORLD_ENV` | | `staging` \| `production` (triple-match) |
 | `ANTHROPIC_API_KEY` | ✅ | watcher bulletin + chat |
 | `NEXT_PUBLIC_WORLD_APP_ID` | | client IDKit app id |
+| `NEXT_PUBLIC_WORLD_ACTION` | | client IDKit action (must match `WORLD_ACTION`) |
+| `NEXT_PUBLIC_WORLD_ENV` | | client IDKit environment, `staging` enables the World simulator |
 
 Plaintext, **K**, and the **Ledger key** never reach the server at all.
 
