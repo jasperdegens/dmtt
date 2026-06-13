@@ -29,6 +29,7 @@ import type {
   MirrorVerifyResult,
   WorldVerifyRequest,
   WorldVerifyResponse,
+  WorldIdkitResponse,
 } from "./types.ts";
 
 // ── constants / canonical values for the deterministic mocks ──────────────────
@@ -257,6 +258,12 @@ const WORLD_PROOF = {
   verification_level: "orb",
 };
 
+const IDKIT_RESPONSE = {
+  protocol_version: "4.0",
+  environment: "staging",
+  responses: [{ nullifier: NULLIFIER }],
+} satisfies WorldIdkitResponse;
+
 // The signal the crypto mock would compute for advancing from liveIdx=1 → rung 2.
 function expectedCheckinSignal(sw: Switch): string {
   const L = sw.liveIdx;
@@ -429,6 +436,36 @@ test("checkin WORLD_VERIFY_FAILED (verifyCheckinProof on, worldVerify ok:false)"
   if (!res.ok) assert.equal(res.error.code, "WORLD_VERIFY_FAILED");
   assert.deepEqual(await store.load(TOPIC_ID), seed);
   assert.equal(log.scheduled.length, 0);
+});
+
+test("checkin verifyCheckinProof uses IDKit responses[] when supplied", async () => {
+  const seed = seededSwitch(1);
+  const store = makeStore(seed);
+  const { hedera } = makeHedera();
+  let seen: WorldVerifyRequest | null = null;
+  const ctx = makeCtx({
+    store,
+    hedera,
+    flags: { verifyCheckinProof: true },
+    worldVerify: async (req) => {
+      seen = req;
+      return { ok: true, nullifier: NULLIFIER };
+    },
+  });
+  const artifacts = { proof: WORLD_PROOF, action: "check-in", idkitResponse: IDKIT_RESPONSE };
+
+  const res = await checkin(
+    ctx,
+    { topicId: TOPIC_ID, seq: 0, signal: expectedCheckinSignal(seed) },
+    artifacts,
+  );
+
+  assert.ok(res.ok);
+  assert.ok(seen);
+  const req = seen as unknown as WorldVerifyRequest;
+  assert.equal(req.idkitResponse, IDKIT_RESPONSE);
+  assert.equal(req.proof, undefined);
+  assert.equal(Array.isArray(req.idkitResponse?.responses), true);
 });
 
 test("checkin WRONG_NULLIFIER (proof nullifier ≠ policy.nullifier)", async () => {

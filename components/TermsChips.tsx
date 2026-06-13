@@ -4,7 +4,7 @@
 // length N, FUNDING, and the public bulletin. Emits a Terms once confirmed; these
 // are bound into policyHash at arm, so they're locked from that point.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LADDER_N, type Terms } from "@/lib/types.ts";
 
 const INTERVAL_UNITS = [
@@ -17,7 +17,24 @@ type IntervalUnit = (typeof INTERVAL_UNITS)[number]["unit"];
 const DEFAULT_FUNDING_HBAR = 0.1;
 const MIN_FUNDING_HBAR = 0.1;
 
-export function TermsChips({ onTerms }: { onTerms: (terms: Terms) => void }) {
+/** Render an intervalSec back to the count+unit chips (largest unit that divides it). */
+function secToCountUnit(sec: number): { count: number; unit: IntervalUnit } {
+  for (const u of [...INTERVAL_UNITS].reverse()) {
+    if (sec % u.seconds === 0) return { count: sec / u.seconds, unit: u.unit };
+  }
+  return { count: Math.max(1, Math.round(sec / 60)), unit: "minute" };
+}
+
+export function TermsChips({
+  onTerms,
+  suggestion,
+}: {
+  onTerms: (terms: Terms) => void;
+  /** A free-text chip proposal (e.g. "2 minutes", "0.1 hbar") to prefill the fields with.
+   *  Free text never sets the Terms directly — it only fills the card, which the user
+   *  still confirms (CLAUDE.md: the machine advances on captured artifacts, not text). */
+  suggestion?: Partial<Terms>;
+}) {
   const [intervalCount, setIntervalCount] = useState<number>(1);
   const [intervalUnit, setIntervalUnit] = useState<IntervalUnit>("minute");
   const [n, setN] = useState<number>(LADDER_N);
@@ -25,6 +42,24 @@ export function TermsChips({ onTerms }: { onTerms: (terms: Terms) => void }) {
   const [bulletin, setBulletin] = useState<string>("");
   const selectedUnit = INTERVAL_UNITS.find((u) => u.unit === intervalUnit) ?? INTERVAL_UNITS[0];
   const intervalSec = intervalCount * selectedUnit.seconds;
+
+  // Apply an incoming free-text proposal to the relevant field(s). Each PARSE_TEXT is a
+  // fresh object, so this re-runs per suggestion; the user still presses confirm.
+  useEffect(() => {
+    if (!suggestion) return;
+    if (typeof suggestion.intervalSec === "number" && suggestion.intervalSec > 0) {
+      const { count, unit } = secToCountUnit(suggestion.intervalSec);
+      setIntervalCount(count);
+      setIntervalUnit(unit);
+    }
+    if (typeof suggestion.fundingHbar === "number" && suggestion.fundingHbar > 0) {
+      setFundingHbar(Math.max(MIN_FUNDING_HBAR, suggestion.fundingHbar));
+    }
+    if (typeof suggestion.n === "number" && suggestion.n > 0) {
+      setN(Math.min(LADDER_N, Math.max(1, suggestion.n)));
+    }
+    if (typeof suggestion.bulletin === "string") setBulletin(suggestion.bulletin);
+  }, [suggestion]);
 
   return (
     <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5">
