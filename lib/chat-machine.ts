@@ -162,27 +162,26 @@ export function reduce(ctx: ChatContext, ev: ChatEvent): ChatContext {
 
 export function narrate(ctx: ChatContext): string {
   if (ctx.error) {
-    return `I can't do that: ${ctx.error}. Each step needs its real artifact — I can't skip ahead.`;
+    return `Belay that! ${ctx.error}. Every step wants its proper token, matey — I'll not be skippin' ahead, no matter how sweetly ye ask.`;
   }
   switch (ctx.state) {
     case "IDLE":
-      return "Let's set up your switch. First, write the memo — it's encrypted in your browser before anything leaves your device.";
     case "MEMO":
-      return "Write the memo in the card above — it's encrypted in your browser before anything leaves your device.";
+      return "Right then — scrawl yer last words below, or pin a file to the mast. I lock 'em in a chest inside yer own browser afore aught leaves yer ship; not even ol' Mordecai can sneak a peek. On me peg leg, I swear it.";
     case "TERMS":
-      return "Memo captured (encrypted locally). Now choose your terms: how often you'll check in, the funding, and an optional public bulletin. You can also just type something like “2 minutes” or “0.1 hbar”.";
+      return "Sealed an' snug. Now — how often will ye send word that ye still draw breath? Tap a tide below. Miss one full turn o' the glass and the whole network spills yer secret to the world. I've already set a sensible ladder an' a wee bounty; poke the fine print only if ye fancy.";
     case "WORLD":
-      return "Terms set. Next, verify you're a unique human with World ID — this is the authority that lets you postpone later.";
+      return "Terms struck! Next, prove yer a livin' soul an' not some bilge-suckin' script — one tap o' World ID binds this pact to ye an' ye alone. Can't be forged, can't be handed off. That's rather the whole point, aye?";
     case "SIGN":
-      return "Verified. Now sign the arm funding transfer on your Ledger — that's the device authority that arms the switch.";
+      return "Yer human — good, I had me doubts. Last deed: sign the funding transfer on yer Ledger. That little slab holds the only key worth a doubloon, an' I never lay a finger on it. Squint at the memo on its wee screen, make sure it matches, then seal the bargain.";
     case "ARMED":
-      return "Armed. Your switch is live; check in before each deadline to postpone, or it releases when you go silent.";
+      return "It be DONE — yer switch is armed an' I'm perched here keepin' watch with me one good eye. Send word afore each deadline an' I'll shove the tide back. Go quiet… an' the deep claims yer secret for all the world to read.";
     case "CHECKIN":
-      return "Checking in postpones the next release. Verify with World ID to advance one rung.";
+      return "Checkin' in shoves the reckonin' back one notch. Prove yer still kickin' with World ID an' I'll burn the nearest rung off yer ladder.";
     case "CANCEL":
-      return "Cancelling requires a device-signed transfer; that's the only way to stand the switch down.";
+      return "Standin' the whole pact down, are ye? That wants a transfer signed by yer own Ledger — the only way to call off this old dog. No signature, no mercy.";
     default:
-      return "Ready.";
+      return "Ready when ye are, captain.";
   }
 }
 

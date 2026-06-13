@@ -109,14 +109,10 @@ export function WorldVerifyCard({
   }
 
   return (
-    <div className="panel p-5">
-      <h2 className="panel-title">Prove you&apos;re human</h2>
-      <p className="panel-note mt-1 text-xs">
-        World ID binds this switch to one verified person. The nullifier can&apos;t be
-        scripted or delegated — that&apos;s the point.
-      </p>
+    <div className="compose">
+      <p className="compose__tag">👁 One verified human · can’t be scripted or delegated</p>
 
-      {error ? <p className="mt-3 text-xs text-[color:var(--red)]">{error}</p> : null}
+      {error ? <p className="compose__err">{error}</p> : null}
 
       {configured ? (
         <>
@@ -124,9 +120,9 @@ export function WorldVerifyCard({
             type="button"
             disabled={busy}
             onClick={startVerify}
-            className="btn btn--gold mt-4 w-full"
+            className="btn btn--gold w-full"
           >
-            {busy ? "Verifying…" : "Verify with World ID"}
+            {busy ? "Verifyin'…" : "Prove I’m a living soul 👁"}
           </button>
 
           {rpContext ? (
@@ -145,7 +141,7 @@ export function WorldVerifyCard({
           ) : null}
         </>
       ) : (
-        <button type="button" onClick={simulate} className="btn btn--ghost mt-4 w-full">
+        <button type="button" onClick={simulate} className="btn btn--ghost w-full">
           Simulate World ID (dev — not configured)
         </button>
       )}
