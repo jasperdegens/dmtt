@@ -273,6 +273,15 @@ export interface WorldProof {
   verification_level: string;
 }
 
+export interface WorldIdkitResponse {
+  protocol_version?: string;
+  nonce?: string;
+  action?: string;
+  environment?: WorldEnvironment;
+  responses: Array<Record<string, unknown>>;
+  [key: string]: unknown;
+}
+
 /** POST /api/world/rp-context request — the signal to bind into the proof request. */
 export interface RpContextRequest {
   signal: Hex64;
@@ -288,12 +297,15 @@ export interface RpContextResponse {
   signature: string;
 }
 
-/** POST /api/world/verify request. Forwards the proof AS-IS plus the top-level
- *  `action` (required — G0) and the bound `signal`. */
+/** POST /api/world/verify request. Real IDKit v4 flows forward the full
+ *  `idkitResponse` AS-IS because Developer Portal verify requires `responses[]`.
+ *  `proof` remains for executor fixtures and legacy compact artifacts. */
 export interface WorldVerifyRequest {
-  proof: WorldProof;
+  proof?: WorldProof;
+  idkitResponse?: WorldIdkitResponse;
   action: string;
   signal: Hex64;
+  environment?: WorldEnvironment;
 }
 
 export interface WorldVerifyResponse {
@@ -303,6 +315,8 @@ export interface WorldVerifyResponse {
   /** Failure reason when !ok. */
   detail?: string;
 }
+
+export type WorldEnvironment = "production" | "staging";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REST shapes (Phase 2 names the three public reads; mutation routes call executors).
@@ -626,6 +640,9 @@ export const ENV_VARS = [
   "WORLD_ENV",
   "ANTHROPIC_API_KEY",
   "NEXT_PUBLIC_WORLD_APP_ID",
+  "NEXT_PUBLIC_WORLD_ACTION",
+  "NEXT_PUBLIC_WORLD_ENV",
+  "NEXT_PUBLIC_WLD_ENVIRONMENT",
 ] as const;
 
 export type EnvVar = (typeof ENV_VARS)[number];

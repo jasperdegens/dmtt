@@ -1,8 +1,8 @@
 // lib/world.test.ts — WS-E self-verification (node --test --test-reporter=spec).
 //
 // PURE checks of the World backend:
-//   1. buildVerifyPayload produces the G0 shape — top-level `action` + the proof
-//      fields AS-IS (the endpoint 400s "action is required" without it).
+//   1. buildVerifyPayload preserves the full IDKit `responses[]` payload and still
+//      supports the legacy compact proof fixture shape.
 //   2. signRpContext / verifyWorldProof fail SAFELY when World isn't configured
 //      (no creds in the test env → throw / {ok:false,"world not configured"}, with
 //      NO network call).
@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 
 import { buildVerifyPayload, signRpContext, verifyWorldProof } from "./world.ts";
 import { hasWorldCreds } from "./env.ts";
-import type { WorldProof, WorldVerifyRequest } from "./types.ts";
+import type { WorldIdkitResponse, WorldProof, WorldVerifyRequest } from "./types.ts";
 
 const NULLIFIER_VECTOR = "12345678901234567890123456789012345678901234567890";
 const SIGNAL =
@@ -29,20 +29,65 @@ const worldProof: WorldProof = {
   verification_level: "orb",
 };
 
+const idkitResponse = {
+  protocol_version: "4.0",
+  nonce: "nonce-1",
+  action: "check-in",
+  environment: "staging",
+  responses: [
+    {
+      identifier: "orb",
+      signal_hash: "0x0",
+      proof: ["0x1", "0x2", "0x3", "0x4", "0x5"],
+      nullifier: NULLIFIER_VECTOR,
+      issuer_schema_id: 1,
+      expires_at_min: 1_756_166_400,
+    },
+  ],
+} satisfies WorldIdkitResponse;
+
 // ── G0 shape: top-level `action` + the proof fields, AS-IS ────────────────────
 test("buildVerifyPayload carries top-level action + signal + the proof AS-IS", () => {
   const req: WorldVerifyRequest = { proof: worldProof, action: "check-in", signal: SIGNAL };
-  const payload = buildVerifyPayload(req);
+  const payload = buildVerifyPayload(req, "production");
 
   // The G0 requirement: a top-level `action` (without it /verify 400s).
   assert.equal(payload.action, "check-in");
   // The bound signal also rides top-level.
   assert.equal(payload.signal, SIGNAL);
+  // The Developer Portal verify endpoint defaults to production; we make it explicit.
+  assert.equal(payload.environment, "production");
   // The proof fields are forwarded unchanged (no re-encoding).
   assert.equal(payload.nullifier_hash, NULLIFIER_VECTOR);
   assert.equal(payload.proof, worldProof.proof);
   assert.equal(payload.merkle_root, worldProof.merkle_root);
   assert.equal(payload.verification_level, "orb");
+});
+
+test("buildVerifyPayload can target World staging for simulator proofs", () => {
+  const req: WorldVerifyRequest = { proof: worldProof, action: "check-in", signal: SIGNAL };
+  const payload = buildVerifyPayload(req, "staging");
+
+  assert.equal(payload.environment, "staging");
+  assert.equal(payload.action, "check-in");
+  assert.equal(payload.signal, SIGNAL);
+});
+
+test("buildVerifyPayload forwards full IDKit response with responses array", () => {
+  const req: WorldVerifyRequest = {
+    idkitResponse,
+    action: "check-in",
+    signal: SIGNAL,
+    environment: "staging",
+  };
+  const payload = buildVerifyPayload(req);
+
+  assert.equal(payload.protocol_version, "4.0");
+  assert.equal(payload.action, "check-in");
+  assert.equal(payload.environment, "staging");
+  assert.equal(Array.isArray(payload.responses), true);
+  assert.equal((payload.responses as unknown[]).length, 1);
+  assert.equal("nullifier_hash" in payload, false);
 });
 
 // ── Safe failure without creds (no network) ──────────────────────────────────

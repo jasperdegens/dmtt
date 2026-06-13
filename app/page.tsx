@@ -30,11 +30,16 @@ import type {
   StorageRef,
   ArmInput,
   ArmArtifacts,
+  WorldEnvironment,
 } from "@/lib/types.ts";
 
 // The fixed phases (mirrors chat-machine's ChatState, lowercase for the URL).
 const PHASES = ["memo", "terms", "world", "sign", "armed"] as const;
 type Phase = (typeof PHASES)[number];
+const PUBLIC_WORLD_ENV =
+  process.env.NEXT_PUBLIC_WORLD_ENV ?? process.env.NEXT_PUBLIC_WLD_ENVIRONMENT;
+const WORLD_ENV: WorldEnvironment =
+  PUBLIC_WORLD_ENV === "staging" ? "staging" : "production";
 
 function isPhase(v: string | null): v is Phase {
   return v !== null && (PHASES as readonly string[]).includes(v);
@@ -169,6 +174,7 @@ export default function Home() {
         {phase === "world" ? (
           <WorldVerifyCard
             signal={memo?.ciphertextHash ?? ""}
+            environment={WORLD_ENV}
             onVerified={(v) => {
               setWorld(v);
               goto("sign");
