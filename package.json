@@ -9,6 +9,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "node --import ./test/ts-resolve.mjs --test \"test/**/*.test.ts\"",
     "spike:tlock": "node spikes/s5_tlock.mjs",
     "spike:mirror": "node spikes/s4_mirror.mjs",
     "spike:schedule": "node spikes/s2_schedule.mjs",
