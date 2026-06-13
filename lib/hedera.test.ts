@@ -14,6 +14,7 @@ import assert from "node:assert/strict";
 
 import {
   mirrorVerifyTransfer,
+  topicMessagesUrl,
   selectMedium,
   splitChunks,
   joinChunks,
@@ -173,6 +174,21 @@ test("mirrorVerifyTransfer: fetch throws → not_found (errs toward unverified)"
   const r = await mirrorVerifyTransfer(BASE, "0.0.1-1-1", {}, fetchFn);
   assert.equal(r.ok, false);
   assert.equal(r.reason, "not_found");
+});
+
+test("topicMessagesUrl: omits sequence filter for first page / afterSeq 0", () => {
+  assert.equal(
+    topicMessagesUrl(BASE, "0.0.9221027"),
+    `${BASE}/api/v1/topics/0.0.9221027/messages?limit=100&order=asc`,
+  );
+  assert.equal(
+    topicMessagesUrl(BASE, "0.0.9221027", 0),
+    `${BASE}/api/v1/topics/0.0.9221027/messages?limit=100&order=asc`,
+  );
+  assert.equal(
+    topicMessagesUrl(BASE, "0.0.9221027", 2),
+    `${BASE}/api/v1/topics/0.0.9221027/messages?limit=100&order=asc&sequencenumber=gt:2`,
+  );
 });
 
 // ── selectMedium ─────────────────────────────────────────────────────────────
