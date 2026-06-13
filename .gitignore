@@ -21,3 +21,5 @@ build/
 .idea/
 .vscode/
 *.tsbuildinfo
+
+public/prores/*
