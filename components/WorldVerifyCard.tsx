@@ -10,17 +10,18 @@
 // public NEXT_PUBLIC_WORLD_* config reaches the client.
 //
 // IDKit v4's rp_context must be signed by the backend (POST /api/world/rp-context); we
-// fetch it before opening the widget. When World isn't configured (no app id, or a dev
-// run) the clearly-labeled "simulate" button stands in so the wizard still flows — it
+// fetch it before opening the request flow. When World isn't configured (no app id, or a
+// dev run) the clearly-labeled "simulate" button stands in so the wizard still flows — it
 // emits a deterministic, contract-valid nullifier for local testing only.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  IDKitRequestWidget,
   orbLegacy,
+  useIDKitRequest,
   type IDKitResult,
   type RpContext,
 } from "@worldcoin/idkit";
+import QRCode from "qrcode";
 import type {
   Nullifier,
   RpContextResponse,
@@ -36,6 +37,157 @@ export interface WorldVerified {
 
 const APP_ID = process.env.NEXT_PUBLIC_WORLD_APP_ID ?? "";
 const ACTION = process.env.NEXT_PUBLIC_WORLD_ACTION ?? "check-in";
+
+interface WorldRequestDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  appId: `app_${string}`;
+  action: string;
+  rpContext: RpContextResponse;
+  signal: string;
+  environment: WorldEnvironment;
+  onSuccess: (result: IDKitResult) => void | Promise<void>;
+  onError: (message: string) => void;
+}
+
+function WorldRequestDialog({
+  open,
+  onOpenChange,
+  appId,
+  action,
+  rpContext,
+  signal,
+  environment,
+  onSuccess,
+  onError,
+}: WorldRequestDialogProps) {
+  const {
+    open: openRequest,
+    reset,
+    connectorURI,
+    isAwaitingUserConnection,
+    isAwaitingUserConfirmation,
+    isError,
+    isSuccess,
+    result,
+    errorCode,
+  } = useIDKitRequest({
+    app_id: appId,
+    action,
+    rp_context: rpContext as unknown as RpContext,
+    allow_legacy_proofs: true,
+    environment,
+    preset: orbLegacy({ signal }),
+  });
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const handledResultRef = useRef<IDKitResult | null>(null);
+  const handledErrorRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      openRequest();
+      return;
+    }
+    handledResultRef.current = null;
+    handledErrorRef.current = null;
+    setQrDataUrl(null);
+    reset();
+  }, [open, openRequest, reset]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setQrDataUrl(null);
+
+    if (!connectorURI || environment === "staging") return;
+
+    void QRCode.toDataURL(connectorURI, {
+      errorCorrectionLevel: "M",
+      margin: 1,
+      width: 224,
+      color: { dark: "#111827", light: "#ffffff" },
+    })
+      .then((url) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) onError("QR generation failed");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [connectorURI, environment, onError]);
+
+  useEffect(() => {
+    if (!isSuccess || !result || handledResultRef.current === result) return;
+    handledResultRef.current = result;
+    void onSuccess(result);
+  }, [isSuccess, onSuccess, result]);
+
+  useEffect(() => {
+    const nextError = errorCode ? String(errorCode) : null;
+    if (!isError || !nextError || handledErrorRef.current === nextError) return;
+    handledErrorRef.current = nextError;
+    onError(nextError);
+  }, [errorCode, isError, onError]);
+
+  if (!open) return null;
+
+  const simulatorUrl =
+    environment === "staging" && connectorURI
+      ? `https://simulator.worldcoin.org?connect_url=${encodeURIComponent(connectorURI)}`
+      : null;
+  const statusText = isAwaitingUserConfirmation
+    ? "Waiting for confirmation..."
+    : isAwaitingUserConnection
+      ? "Waiting for connection..."
+      : "Preparing request...";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="w-full max-w-sm rounded-xl border border-neutral-800 bg-neutral-950 p-5 shadow-xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-base font-semibold text-white">World ID</h3>
+            <p className="mt-1 text-xs text-neutral-400">{statusText}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="rounded-md border border-neutral-800 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-900"
+          >
+            Cancel
+          </button>
+        </div>
+
+        <div className="mt-5 flex min-h-60 items-center justify-center rounded-lg border border-neutral-800 bg-white p-4">
+          {environment === "staging" ? (
+            simulatorUrl ? (
+              <a
+                href={simulatorUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+              >
+                Open World Simulator
+              </a>
+            ) : (
+              <p className="text-sm text-neutral-700">Preparing simulator...</p>
+            )
+          ) : qrDataUrl ? (
+            <img
+              src={qrDataUrl}
+              alt="World ID QR code"
+              className="h-56 w-56"
+            />
+          ) : (
+            <p className="text-sm text-neutral-700">Preparing QR code...</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function WorldVerifyCard({
   signal,
@@ -55,7 +207,7 @@ export function WorldVerifyCard({
 
   const configured = APP_ID.startsWith("app_");
 
-  // Fetch the backend-signed rp_context, then open the IDKit widget.
+  // Fetch the backend-signed rp_context, then open the IDKit request flow.
   async function startVerify() {
     setError(null);
     setBusy(true);
@@ -75,7 +227,7 @@ export function WorldVerifyCard({
     }
   }
 
-  // The widget succeeded — forward the proof to the server verify route.
+  // The request succeeded — forward the proof to the server verify route.
   async function handleSuccess(result: IDKitResult) {
     setOpen(false);
     setBusy(true);
@@ -130,17 +282,16 @@ export function WorldVerifyCard({
           </button>
 
           {rpContext ? (
-            <IDKitRequestWidget
+            <WorldRequestDialog
               open={open}
               onOpenChange={setOpen}
-              app_id={APP_ID as `app_${string}`}
+              appId={APP_ID as `app_${string}`}
               action={ACTION}
-              rp_context={rpContext as unknown as RpContext}
-              allow_legacy_proofs={true}
+              rpContext={rpContext}
+              signal={signal}
               environment={environment}
-              preset={orbLegacy({ signal })}
               onSuccess={handleSuccess}
-              onError={(code) => setError(String(code))}
+              onError={setError}
             />
           ) : null}
         </>
