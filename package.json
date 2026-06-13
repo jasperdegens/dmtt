@@ -1,0 +1,22 @@
+{
+  "name": "dmtt",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dead Men Tell Tales — a dead man's switch for encrypted documents on Hedera + World ID + Ledger + drand.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "spike:tlock": "node spikes/s5_tlock.mjs",
+    "spike:mirror": "node spikes/s4_mirror.mjs",
+    "spike:schedule": "node spikes/s2_schedule.mjs",
+    "spike:hfs": "node spikes/s3_hfs.mjs",
+    "spike:all": "node spikes/run_all.mjs"
+  },
+  "dependencies": {
+    "@hiero-ledger/sdk": "^2.81.0",
+    "@worldcoin/idkit-core": "^4.1.8",
+    "tlock-js": "^0.9.0"
+  }
+}
