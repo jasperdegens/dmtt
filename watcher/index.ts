@@ -6,15 +6,24 @@
 // BULLETIN. All the release logic is the PURE module release.ts; this file only
 // wires the REAL store/hedera deps and runs the loop.
 //
+// It ALSO runs the Phase-5 cancel backstop (cancel-backstop.ts): each pass scans the
+// AGENT account's inbound transactions for a device-signed DMTT:CANCEL:<topicId> memo
+// and honors it through the cancel executor — so a cancel signed on the Ledger is
+// honored even if the web client never POSTed it to /api/cancel (the on-chain transfer
+// is the authority — CLAUDE.md C1). Disable with DMTT_CANCEL_BACKSTOP=false.
+//
 // Run: node watcher/index.ts
 //
 // Import-safe & crash-resistant by design: it never throws at import, and a poll
 // failure (e.g. missing creds, mirror hiccup) is logged and the loop keeps idling.
 
 import { store } from "../lib/store.ts";
-import { hedera, hasHederaCreds, payHbar } from "../lib/hedera.ts";
+import { hedera, hasHederaCreds, payHbar, mirrorAccountTransactions } from "../lib/hedera.ts";
 import { env } from "../lib/env.ts";
+import { makeContext } from "../lib/context.ts";
+import { cancel } from "../lib/executors.ts";
 import { pollOnce, type ReleaseDeps } from "./release.ts";
+import { scanCancels, type CancelBackstopDeps, type CancelCursor } from "./cancel-backstop.ts";
 import type { Switch } from "../lib/types.ts";
 
 /** Poll cadence — schedule firing lag is ~34 ms (S2); 3 s is comfortably tight. */
@@ -84,6 +93,33 @@ async function payBounty(sw: Switch): Promise<void> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// honorCancel — run a backstop-detected cancel through the SAME cancel executor the
+// /api/cancel route uses. The executor re-runs the mirror-verify recipe (when
+// DMTT_VERIFY_CANCEL is on, the default) before tearing down, so the backstop only
+// DISCOVERS the device-signed transfer; it never authorizes one. Returns true only
+// when the switch transitioned to CANCELLED; verify-rejected / already-inactive ⇒
+// false (no throw); only infra errors (SDK/network) propagate so the pass retries.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function honorCancel(
+  topicId: string,
+  cancelTxId: string,
+  ledgerAccountId: string,
+): Promise<boolean> {
+  const res = await cancel(makeContext(), { topicId }, { cancelTxId, ledgerAccountId });
+  if (res.ok) {
+    console.log(`[watcher] cancel backstop honored ${topicId} via ${cancelTxId}`);
+    return true;
+  }
+  // ok:false is not an error — the cancel didn't verify, or the switch was already
+  // terminal (the UI got there first). NOT_ACTIVE is the common idempotent skip.
+  if (res.error.code !== "NOT_ACTIVE") {
+    console.warn(`[watcher] cancel backstop skipped ${topicId}: ${res.error.code} — ${res.error.message}`);
+  }
+  return false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // The real deps + the loop.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -94,6 +130,17 @@ const deps: ReleaseDeps = {
   payBounty,
   now: () => Date.now(),
 };
+
+const cancelBackstopOn = env("DMTT_CANCEL_BACKSTOP") !== "false";
+const cancelDeps: CancelBackstopDeps = {
+  store,
+  listAccountTransactions: (after) =>
+    mirrorAccountTransactions(env("HEDERA_OPERATOR_ID") ?? "", after),
+  honorCancel,
+};
+/** Consensus-timestamp cursor seeded to process start ("secs.nanos") so the backstop
+ *  catches cancels signed from now on (re-processing is idempotent anyway). */
+const cancelCursor: CancelCursor = { ts: `${Math.floor(Date.now() / 1000)}.000000000` };
 
 /** Per-process cursor: topicId → last-seen mirror sequenceNumber. The STORE is the
  *  release dedupe (status RELEASED), so the cursor needs no persistence — a restart
@@ -108,16 +155,26 @@ async function tick(): Promise<void> {
   running = true;
   try {
     if (!hasHederaCreds()) {
-      // No operator creds → nothing to poll (and listTopicMessages would fail).
+      // No operator creds → nothing to poll (and the mirror reads would fail).
       // Idle quietly; this keeps `node watcher/index.ts` runnable in dev.
       return;
     }
-    const handled = await pollOnce(deps, cursor);
-    if (handled > 0) {
-      console.log(`[watcher] handled ${handled} release(s) this pass.`);
+    // Release poll and cancel backstop are independent — one failing must not starve
+    // the other, so each gets its own guard (the whole tick still never throws).
+    try {
+      const handled = await pollOnce(deps, cursor);
+      if (handled > 0) console.log(`[watcher] handled ${handled} release(s) this pass.`);
+    } catch (err) {
+      console.error("[watcher] release poll failed (continuing):", err);
     }
-  } catch (err) {
-    console.error("[watcher] poll pass failed (continuing):", err);
+    if (cancelBackstopOn) {
+      try {
+        const cancelled = await scanCancels(cancelDeps, cancelCursor);
+        if (cancelled > 0) console.log(`[watcher] honored ${cancelled} cancel(s) via backstop this pass.`);
+      } catch (err) {
+        console.error("[watcher] cancel backstop failed (continuing):", err);
+      }
+    }
   } finally {
     running = false;
   }
