@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-/* Pirate display/body fonts (Pirata One, IM Fell English[ SC]) are loaded via <link>
+/* Pirate display/body fonts (Pirata One, IM Fell English[ SC]) plus the readable UI
+   face (Alegreya Sans) are loaded via <link>
    in app/layout.tsx — keeping them out of CSS @import avoids the Tailwind-v4 ordering
    warning and the render-blocking import. Fallbacks (serif) keep the layout intact if
    the web fonts are slow or offline. */
@@ -39,6 +40,7 @@
   --font-display: "Pirata One", "Cinzel Decorative", system-ui, serif;
   --font-body: "IM Fell English", Georgia, "Times New Roman", serif;
   --font-caps: "IM Fell English SC", var(--font-body);
+  --font-ui: "Alegreya Sans", system-ui, sans-serif;
 
   /* surfaces */
   --panel-border: color-mix(in srgb, var(--gold) 50%, transparent);
@@ -158,132 +160,121 @@ body.scene-locked {
 
 /* ============================== BUTTONS ============================== */
 .btn {
-  position: relative;
-  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5em;
-  font-family: var(--font-caps);
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  font-size: 0.82rem;
-  line-height: 1;
-  min-height: 42px;
-  padding: 0.68rem 1.1rem;
-  border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--gold) 46%, #05080d);
-  background: #0d1925;
-  color: var(--cream-bright);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 238, 184, 0.13),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.42),
-    0 8px 18px rgba(0, 0, 0, 0.36);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 1rem;
+  line-height: 1.15;
+  min-height: 44px;
+  padding: 0.7rem 1.1rem;
+  border: 0;
+  border-radius: 5px;
+  background: #123a58;
+  color: #fff4d7;
+  box-shadow: none;
   cursor: pointer;
   transition:
-    transform 0.1s ease,
-    filter 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
+    background 0.15s ease,
+    color 0.15s ease,
+    filter 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
 .btn:hover:not(:disabled) {
-  filter: brightness(1.07) saturate(1.06);
-  border-color: color-mix(in srgb, var(--gold-bright) 58%, #05080d);
+  background: #174767;
 }
 .btn:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
   outline-offset: 3px;
 }
 .btn:active {
-  transform: translateY(1px);
-  box-shadow:
-    inset 0 1px 0 rgba(0, 0, 0, 0.36),
-    inset 0 -1px 0 rgba(255, 238, 184, 0.08),
-    0 4px 10px rgba(0, 0, 0, 0.34);
+  filter: brightness(0.92);
 }
 .btn:disabled {
   opacity: 0.5;
   cursor: default;
-  transform: none;
 }
 .btn--gold {
-  color: #241607;
-  background: #b8872d;
-  border-color: #6f4911;
-  text-shadow: 0 1px 0 rgba(255, 238, 184, 0.28);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 247, 202, 0.32),
-    inset 0 -2px 0 rgba(54, 34, 5, 0.5),
-    0 10px 20px rgba(0, 0, 0, 0.38);
+  color: #160d04;
+  background: #d69722;
+  text-shadow: none;
 }
 .btn--gold:hover:not(:disabled) {
-  background: #c99737;
+  background: #e2a62d;
 }
 .btn--ghost {
-  color: var(--cream);
-  background: #0d1925;
-  border-color: color-mix(in srgb, var(--gold) 42%, #04070b);
+  color: #fff4d7;
+  background: #123a58;
 }
 .btn--ghost:hover:not(:disabled) {
-  background: #132436;
-  border-color: color-mix(in srgb, var(--gold-bright) 58%, #04070b);
+  background: #174767;
 }
 .btn--danger {
   color: #fff1e8;
-  background: #862d26;
-  border-color: #5d1812;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.36);
+  background: #b6382e;
+  text-shadow: none;
 }
 .btn--danger:hover:not(:disabled) {
-  background: #9a352d;
+  background: #c84338;
 }
 /* a larger primary button (the live "Check in") */
 .btn--lg {
-  font-size: 0.95rem;
-  letter-spacing: 0.1em;
-  min-height: 52px;
-  padding: 0.95rem 1.2rem;
+  font-size: 1.08rem;
+  letter-spacing: 0;
+  min-height: 54px;
+  padding: 0.95rem 1.25rem;
   border-radius: 7px;
 }
 /* a secondary, outline-danger button (the live "Terminate") — destructive but quiet */
 .btn--danger-ghost {
-  color: color-mix(in srgb, var(--red) 76%, #fff);
-  background: #0d1925;
-  border-color: color-mix(in srgb, var(--red) 58%, #05080d);
+  color: #ffd1ca;
+  background: #3b1d22;
 }
 .btn--danger-ghost:hover:not(:disabled) {
-  background: #1b1113;
-  border-color: color-mix(in srgb, var(--red) 78%, #05080d);
+  background: #4b2328;
   color: #fdece2;
 }
 .btn--danger-ghost.is-on {
-  background: #862d26;
-  border-color: #5d1812;
+  background: #b6382e;
   color: #fdece2;
+}
+
+.world-icon {
+  flex: 0 0 auto;
+  width: 1.15em;
+  height: 1.15em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* segmented tab buttons (memo note/file, interval units) */
 .tab {
-  font-family: var(--font-caps);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 0.74rem;
-  padding: 0.42rem 0.85rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
-  background: color-mix(in srgb, #000 30%, transparent);
-  color: color-mix(in srgb, var(--cream) 78%, transparent);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.95rem;
+  padding: 0.48rem 0.9rem;
+  border: 0;
+  border-radius: 5px;
+  background: #123a58;
+  color: #fff4d7;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 .tab:hover {
-  background: color-mix(in srgb, var(--gold) 14%, transparent);
+  background: #174767;
 }
 .tab--active {
-  background: var(--gold);
-  color: #2a1810;
-  border-color: #2a1c0c;
+  background: #d69722;
+  color: #160d04;
 }
 
 /* ============================== FIELDS ============================== */
@@ -776,7 +767,7 @@ body.scene-locked {
   text-transform: uppercase;
   letter-spacing: 0.34em;
   font-size: clamp(9px, 0.9vw, 13px);
-  color: var(--gold);
+  color: var(--gold-deep);
   margin: 0 0 0.45rem;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
 }
@@ -893,29 +884,23 @@ body.scene-locked {
 
 /* ============================== ABOUT BUTTON + README MODAL ============================== */
 .about-btn {
-  position: relative;
-  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.5rem 0.95rem;
-  border: 1px solid color-mix(in srgb, var(--gold) 42%, #05080d);
-  border-radius: 6px;
-  background: rgba(8, 15, 23, 0.92);
+  padding: 0.55rem 1rem;
+  border: 0;
+  border-radius: 5px;
+  background: rgba(18, 58, 88, 0.94);
   backdrop-filter: blur(3px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 238, 184, 0.12),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.46),
-    0 8px 24px rgba(0, 0, 0, 0.45);
-  color: var(--cream);
+  box-shadow: none;
+  color: #fff4d7;
   cursor: pointer;
   transition:
-    border-color 0.15s ease,
+    background 0.15s ease,
     filter 0.15s ease;
 }
 .about-btn:hover {
-  border-color: color-mix(in srgb, var(--gold-bright) 58%, #05080d);
-  filter: brightness(1.07) saturate(1.04);
+  background: rgba(23, 71, 103, 0.96);
 }
 .about-btn:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
@@ -926,10 +911,11 @@ body.scene-locked {
   color: var(--gold-bright);
 }
 .about-btn__title {
-  font-family: var(--font-caps);
-  font-size: 1.05rem;
-  letter-spacing: 0.05em;
-  color: var(--cream);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0;
+  color: #fff4d7;
 }
 
 .about-overlay {
@@ -975,18 +961,15 @@ body.scene-locked {
   flex: 0 0 auto;
   width: 2rem;
   height: 2rem;
-  border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--gold) 42%, #05080d);
-  background: #0d1925;
-  color: var(--cream);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 238, 184, 0.1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.42);
+  border: 0;
+  border-radius: 5px;
+  background: #123a58;
+  color: #fff4d7;
+  box-shadow: none;
   cursor: pointer;
 }
 .about-modal__close:hover {
-  border-color: color-mix(in srgb, var(--gold-bright) 58%, #05080d);
-  filter: brightness(1.08);
+  background: #174767;
 }
 .about-modal__close:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
@@ -1222,11 +1205,8 @@ body.scene-locked {
   flex: 1 1 auto;
 }
 .bubble__actions-primary.is-on {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 247, 202, 0.34),
-    inset 0 -2px 0 rgba(54, 34, 5, 0.48),
-    0 0 0 2px color-mix(in srgb, var(--gold-bright) 28%, transparent),
-    0 10px 22px rgba(0, 0, 0, 0.42);
+  background: #e2a62d;
+  box-shadow: none;
 }
 
 /* compact step ladder, shown in the bubble head */
@@ -1398,53 +1378,47 @@ body.scene-locked {
   gap: 0.5rem;
 }
 
-/* tappable quick-reply hardware toggles — compact, but in the same brass/iron family */
+/* tappable quick-reply controls — bright enough to read over the dark cabin panels */
 .qchip {
-  position: relative;
-  overflow: hidden;
-  font-family: var(--font-caps);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 0.78rem;
-  padding: 0.55rem 1rem;
-  border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--gold) 38%, #05080d);
-  background: #0d1925;
-  color: var(--cream);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 238, 184, 0.1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.42);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.96rem;
+  line-height: 1.15;
+  padding: 0.62rem 1rem;
+  border: 0;
+  border-radius: 5px;
+  background: #123a58;
+  color: #fff4d7;
+  box-shadow: none;
   cursor: pointer;
   transition:
-    border-color 0.15s ease,
+    background 0.15s ease,
     color 0.15s ease,
     filter 0.15s ease;
 }
 .qchip:hover {
-  border-color: color-mix(in srgb, var(--gold-bright) 58%, #05080d);
-  filter: brightness(1.08) saturate(1.04);
+  background: #174767;
 }
 .qchip:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--gold-bright) 72%, transparent);
   outline-offset: 3px;
 }
 .qchip--active {
-  background: #b8872d;
-  color: #241607;
-  border-color: #6f4911;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 247, 202, 0.28),
-    inset 0 -1px 0 rgba(54, 34, 5, 0.42),
-    0 6px 14px rgba(0, 0, 0, 0.24);
+  background: #d69722;
+  color: #160d04;
+  box-shadow: none;
 }
 
 /* a quiet disclosure toggle for advanced / fine-print controls */
 .disclosure {
   align-self: flex-start;
-  font-family: var(--font-caps);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.62rem;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.9rem;
   color: var(--gold-bright);
   background: none;
   border: none;
@@ -1470,11 +1444,12 @@ body.scene-locked {
   grid-column: 1 / -1;
 }
 .compose__field > span {
-  font-family: var(--font-caps);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 0.58rem;
-  color: color-mix(in srgb, var(--cream) 60%, transparent);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.82rem;
+  color: color-mix(in srgb, var(--cream) 76%, transparent);
 }
 
 /* live status strip */

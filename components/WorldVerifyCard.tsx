@@ -37,6 +37,22 @@ export interface WorldVerified {
 const APP_ID = process.env.NEXT_PUBLIC_WORLD_APP_ID ?? "";
 const ACTION = process.env.NEXT_PUBLIC_WORLD_ACTION ?? "check-in";
 
+function WorldIcon() {
+  return (
+    <svg
+      className="world-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="12" cy="12" r="8.25" />
+      <path d="M3.75 12h16.5" />
+      <path d="M12 3.75c2.35 2.2 3.55 4.95 3.55 8.25S14.35 18.05 12 20.25" />
+      <path d="M12 3.75C9.65 5.95 8.45 8.7 8.45 12s1.2 6.05 3.55 8.25" />
+    </svg>
+  );
+}
+
 export function WorldVerifyCard({
   signal,
   environment,
@@ -110,8 +126,6 @@ export function WorldVerifyCard({
 
   return (
     <div className="compose">
-      <p className="compose__tag">👁 One verified human · can’t be scripted or delegated</p>
-
       {error ? <p className="compose__err">{error}</p> : null}
 
       {configured ? (
@@ -122,7 +136,8 @@ export function WorldVerifyCard({
             onClick={startVerify}
             className="btn btn--gold w-full"
           >
-            {busy ? "Verifyin'…" : "Prove I’m a living soul 👁"}
+            <WorldIcon />
+            <span>{busy ? "Verifying..." : "Prove I’m a living soul"}</span>
           </button>
 
           {rpContext ? (
