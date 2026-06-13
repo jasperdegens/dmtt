@@ -39,9 +39,15 @@ export default async function SwitchPage({
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 p-6 sm:p-8">
-      <header className="mb-2">
+      <header className="mb-2 flex items-center justify-between">
         <a href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
           ← Dead Men Tell Tales
+        </a>
+        <a
+          href={`/?t=${topicId}`}
+          className="text-xs text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+        >
+          Open in chat →
         </a>
       </header>
 

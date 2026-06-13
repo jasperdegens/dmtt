@@ -7,7 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { reduce, parseFreeText, canArm, type ChatContext } from "./chat-machine.ts";
+import { reduce, narrate, parseFreeText, canArm, type ChatContext } from "./chat-machine.ts";
 import { LADDER_N, type Terms } from "./types.ts";
 
 // Local fixtures (we don't import lib/fixtures.ts: it imports the bare "./types"
@@ -82,6 +82,46 @@ test("LLM offline: reduce() with artifacts alone reaches ARMED", () => {
   ];
   const final = events.reduce<ChatContext>((c, e) => reduce(c, e), { state: "IDLE" });
   assert.equal(final.state, "ARMED");
+});
+
+// ── ARM carries the topicId (Phase 7 SPA continuity) ─────────────────────────
+test("ARM records the topicId returned by the arm flow", () => {
+  let ctx: ChatContext = { state: "IDLE" };
+  ctx = reduce(ctx, { type: "MEMO_CAPTURED", ciphertextHash: "ab".repeat(32), storageKind: "hfs" });
+  ctx = reduce(ctx, { type: "TERMS_SET", terms: termsFixture });
+  ctx = reduce(ctx, { type: "WORLD_VERIFIED", nullifier: NULLIFIER_VECTOR });
+  ctx = reduce(ctx, { type: "SIGNED", armTxId: ARM_TX, ledgerAccountId: LEDGER });
+
+  ctx = reduce(ctx, { type: "ARM", topicId: "0.0.7777777" });
+  assert.equal(ctx.state, "ARMED");
+  assert.equal(ctx.topicId, "0.0.7777777");
+
+  // The injection guard still holds: ARM with a topicId but no artifacts is rejected.
+  const forged = reduce({ state: "SIGN" }, { type: "ARM", topicId: "0.0.9999999" });
+  assert.notEqual(forged.state, "ARMED");
+  assert.equal(forged.topicId, undefined);
+  assert.ok(forged.error);
+});
+
+// ── LOAD_SWITCH restores an armed switch into the chat (topic-URL restoration) ──
+test("LOAD_SWITCH enters a fresh ARMED context keyed to the topic", () => {
+  const ctx = reduce({ state: "IDLE" }, { type: "LOAD_SWITCH", topicId: "0.0.123456" });
+  assert.equal(ctx.state, "ARMED");
+  assert.equal(ctx.topicId, "0.0.123456");
+  // No setup artifacts are synthesized — the live view is fetched from the mirror.
+  assert.equal(ctx.memo, undefined);
+  assert.equal(ctx.nullifier, undefined);
+  assert.equal(ctx.armTxId, undefined);
+});
+
+// ── narrate — deterministic, model-free (the LLM-offline narration source) ─────
+test("narrate returns a non-empty line for every step and flags errors", () => {
+  for (const state of ["IDLE", "MEMO", "TERMS", "WORLD", "SIGN", "ARMED", "CHECKIN", "CANCEL"] as const) {
+    assert.equal(typeof narrate({ state }), "string");
+    assert.ok(narrate({ state }).length > 0);
+  }
+  const err = narrate({ state: "SIGN", error: "cannot arm: missing memo, terms, nullifier, or signature" });
+  assert.match(err, /can't|missing/i);
 });
 
 // ── RESET → IDLE ─────────────────────────────────────────────────────────────

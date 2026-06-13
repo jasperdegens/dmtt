@@ -35,6 +35,8 @@ import type {
   CheckinVerifiedEvent,
   ReleaseAuthorizedEvent,
   CancelledEvent,
+  WorldIdkitResponse,
+  WorldVerifyRequest,
 } from "./types.ts";
 import { armMemo, cancelMemo } from "./types.ts";
 
@@ -52,6 +54,24 @@ function randomHex(bytes: number): string {
   let out = "";
   for (const b of buf) out += b.toString(16).padStart(2, "0");
   return out;
+}
+
+type CheckinArtifactsWithIdkit = CheckinArtifacts & {
+  idkitResponse?: WorldIdkitResponse;
+};
+
+function worldVerifyRequest(
+  artifacts: CheckinArtifacts,
+  signal: CheckinInput["signal"],
+): WorldVerifyRequest {
+  const withIdkit = artifacts as CheckinArtifactsWithIdkit;
+  return {
+    ...(withIdkit.idkitResponse
+      ? { idkitResponse: withIdkit.idkitResponse }
+      : { proof: artifacts.proof }),
+    action: artifacts.action,
+    signal,
+  };
 }
 
 // ── arm ────────────────────────────────────────────────────────────────────────
@@ -77,7 +97,13 @@ export async function arm(
     });
     const minTinybar = Math.floor(artifacts.fundingHbar * 100_000_000);
     if (!r.ok || (r.debitAmountTinybar != null && Math.abs(r.debitAmountTinybar) < minTinybar)) {
-      return fail("ARM_TX_UNVERIFIED", "mirror did not confirm the funded arm transfer");
+      const missing = r.reason === "not_found" || r.reason === "empty";
+      return fail(
+        "ARM_TX_UNVERIFIED",
+        missing
+          ? "mirror did not find the arm transfer; use a real device-signed tx id or set DMTT_VERIFY_ARM=false for the stub Ledger card"
+          : "mirror did not confirm the funded arm transfer",
+      );
     }
   }
 
@@ -172,11 +198,7 @@ export async function checkin(
           result: fail("INTERNAL", "verifyCheckinProof set but no worldVerify in ctx"),
         };
       }
-      const res = await ctx.worldVerify({
-        proof: artifacts.proof,
-        action: artifacts.action,
-        signal: input.signal,
-      });
+      const res = await ctx.worldVerify(worldVerifyRequest(artifacts, input.signal));
       if (!res.ok) {
         return { next: current, result: fail("WORLD_VERIFY_FAILED", res.detail ?? "verify rejected") };
       }
