@@ -95,7 +95,7 @@ Assigned before sleeping: README skeleton + trust tables (incl. **delay / shirk 
 
 - **Switch action UI:** add explicit check-in and cancel controls on the per-switch page (`/s/[topicId]`). Check-in must compute the next-rung signal, run the World proof flow, call `POST /api/checkin`, and refresh status. Cancel must guide the device-signed cancel ceremony (stub until real Ledger path is wired), call `POST /api/cancel`, and refresh status.
   **Verify:** from an ACTIVE switch, click Check in → `CHECKIN_VERIFIED` posts and deadline advances; click Cancel on a second switch → `CANCELLED` posts, schedule is gone, ladder is shredded; wrong/stale check-in and bad cancel artifact surface errors without mutating the switch.
-- **Agents:** QR for check-in URL, HashScan links on every event, failure toasts, demo staging/sim toggle, ≤1 MB file path verified **at 1 MB**, docs polish.
+- **Agents:** HashScan links on every event, failure toasts, demo staging/sim toggle, ≤1 MB file path verified **at 1 MB**, docs polish.
   **Verify:** click-through script of all four states (arm / active-check-in / released-reveal / cancelled) with zero console errors; 1 MB arm→reveal round-trip.
 
 ## Phase 7 · T27–T29 — Chat-flow UX conversion
@@ -114,7 +114,7 @@ Assigned before sleeping: README skeleton + trust tables (incl. **delay / shirk 
 - **Minimum action timing:** every scripted chat step and action should have a minimum visible duration of 2 seconds so the animation and chat feedback can read properly. Fast local operations such as encrypting text, preparing the arm payload, starting the topic watcher, or decrypting a capsule should still show a working state and matching animation for at least 2 seconds. Naturally slower operations should not add extra delay beyond their real completion time.
 - **Verify:** screenshot verification is required: desktop and mobile screenshots for arm, active, check-in, cancelled, released/reveal, and error states; include frames with normal darkness and lightning illumination. Check that waves occupy only the lower quarter, do not hide controls or text, both wave layers are visible with offset timing, character videos are framed and nonblank, all buttons fit, no text overlaps, zero console errors, reduced-motion fallbacks render, and the flow still passes the M2 checklist.
 
-## Phase 9 · T33–T34 — Stretch gates
+## Phase 9 · T33–T34 — Stretch gates [DEFERRED - DO NOT COMPLETE]
 
 - **ProveKit gate:** only if M2 and Phase 8 are green → 1-h agent spike (compile Noir circuit, prove 1 KB SHA-256 preimage, time it). **Verify to proceed:** browser-feasible proving time + status-page verification. Scope ceiling: text ≤1 KB, one predicate. **Land by T+34 or drop without regret.**
 - **Watchtower gate:** only if everything is green → ~50-line independent verifier + 2-of-2 schedule-admin KeyList **on a separate demo switch only** (live-demo switch keeps agent-only admin). **Verify:** compromised-backend simulation — `ScheduleDelete` without the watchtower co-sig fails on-chain.

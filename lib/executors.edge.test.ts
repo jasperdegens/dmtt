@@ -199,13 +199,14 @@ function makeCtx(parts: {
   crypto?: CryptoSurface;
   flags?: Partial<ExecutorFlags>;
   worldVerify?: (req: WorldVerifyRequest) => Promise<WorldVerifyResponse>;
+  now?: () => number;
 }): ExecutorContext {
   return {
     store: parts.store ?? makeStore(),
     hedera: parts.hedera ?? makeHedera().hedera,
     crypto: parts.crypto ?? makeCrypto(),
     flags: { ...FLAGS_OFF, ...parts.flags },
-    now: () => ARM_TIME + INTERVAL_MS,
+    now: parts.now ?? (() => ARM_TIME + INTERVAL_MS),
     worldVerify: parts.worldVerify,
   };
 }
@@ -471,6 +472,68 @@ test("checkin happy path: scheduleRelease recorded BEFORE deleteSchedule (create
 
   const onlySchedDelete = log.calls.filter((c) => c === "scheduleRelease" || c === "deleteSchedule");
   assert.deepEqual(onlySchedDelete, ["scheduleRelease", "deleteSchedule"]);
+});
+
+test("checkin rejects a second check-in before the next assigned period opens", async () => {
+  const seed = seededSwitch(1);
+  const store = makeStore(seed);
+  const { hedera, log } = makeHedera();
+  const ctx = makeCtx({
+    store,
+    hedera,
+    // Still inside the original rung-1 period for both calls. The first check-in
+    // is allowed; the immediate second must not advance into rung 3.
+    now: () => ARM_TIME + Math.floor(INTERVAL_MS / 2),
+  });
+
+  const first = await checkin(
+    ctx,
+    { topicId: TOPIC_ID, seq: 0, signal: expectedCheckinSignal(seed) },
+    { proof: WORLD_PROOF, action: "check-in" },
+  );
+  assert.ok(first.ok, "first check-in in the assigned period succeeds");
+
+  const afterFirst = await store.load(TOPIC_ID);
+  assert.ok(afterFirst);
+  if (!afterFirst) return;
+  assert.equal(afterFirst.seq, 1);
+  assert.equal(afterFirst.liveIdx, 2);
+
+  const callsBeforeSecond = log.calls.length;
+  const snapshot = structuredClone(afterFirst);
+  const second = await checkin(
+    ctx,
+    { topicId: TOPIC_ID, seq: afterFirst.seq, signal: expectedCheckinSignal(afterFirst) },
+    { proof: WORLD_PROOF, action: "check-in" },
+  );
+
+  assert.ok(!second.ok, "second check-in in the same period is rejected");
+  if (!second.ok) {
+    assert.equal(second.error.code, "STALE_SEQ");
+    assert.match(second.error.message, /already used for this period/);
+  }
+  assert.deepEqual(await store.load(TOPIC_ID), snapshot, "store unchanged after rejected second check-in");
+  assert.equal(log.calls.length, callsBeforeSecond, "no hedera side effects for rejected second check-in");
+});
+
+test("checkin allows the next check-in once the next assigned period has opened", async () => {
+  const seed = seededSwitch(2);
+  const store = makeStore(seed);
+  const ctx = makeCtx({
+    store,
+    now: () => seed.ladder[0].deadline,
+  });
+
+  const res = await checkin(
+    ctx,
+    { topicId: TOPIC_ID, seq: seed.seq, signal: expectedCheckinSignal(seed) },
+    { proof: WORLD_PROOF, action: "check-in" },
+  );
+
+  assert.ok(res.ok, "next-period check-in succeeds at the prior rung deadline");
+  if (!res.ok) return;
+  assert.equal(res.value.seq, 2);
+  assert.equal(res.value.liveIdx, 3);
 });
 
 test("checkin burned-rung shred: only ladder[L-1] cleared, every other capsule intact", async () => {

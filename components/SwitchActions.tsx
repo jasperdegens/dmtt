@@ -3,35 +3,74 @@
 // SwitchActions — Phase 6 per-switch CANCEL control (check-in lives in CheckinCard).
 //
 // Cancel's root authority is the DEVICE-signed CryptoTransfer (Ledger → agent, 1 tinybar,
-// memo "DMTT:CANCEL:<topicId>" — CLAUDE.md C1), not this HTTP call. The card guides that
-// ceremony: it shows the exact memo to sign, then offers an OPTIONAL fast path — paste the
-// resulting transaction id to honor the cancel immediately via POST /api/cancel (the
-// executor mirror-verifies it: SUCCESS + memo + Ledger debit). Either way the watcher's
-// cancel backstop will independently detect and honor the signed transfer, so pasting the
-// id is only to skip the wait. On success the page reloads to the CANCELLED state.
+// memo "DMTT:CANCEL:<topicId>" — CLAUDE.md C1), not this HTTP call. Two ways to produce it:
+//   • One-click on the Ledger (useLedgerHedera): connect → sign the 1-tinybar transfer →
+//     it is relayed on-chain, then we honor it via POST /api/cancel.
+//   • Paste a transaction id you signed elsewhere (the manual fallback).
+// Either way the executor mirror-verifies it (SUCCESS + memo + Ledger debit), and the
+// watcher's cancel backstop honors the signed transfer independently — so honoring here
+// only skips the wait. On success the page reloads to the CANCELLED state.
 
 import { useState } from "react";
 import { cancelMemo } from "@/lib/types.ts";
 import type { SwitchView } from "@/lib/types.ts";
+import { useLedgerHedera } from "./useLedgerHedera.ts";
 import { usePirate } from "./scene/PirateContext.tsx";
 
 export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh?: () => void }) {
   const [open, setOpen] = useState(false);
-  const [ledgerAccountId, setLedgerAccountId] = useState("");
-  const [cancelTxId, setCancelTxId] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [manualAccount, setManualAccount] = useState("");
+  const [manualTx, setManualTx] = useState("");
+  const ledger = useLedgerHedera();
   const { runWhile } = usePirate();
 
   // Cancel only applies to a live switch (the page also gates on status === "ACTIVE").
   if (view.status !== "ACTIVE") return null;
 
-  async function submitCancel() {
+  const memo = cancelMemo(view.topicId);
+  const deviceBusy = ledger.phase === "connecting" || ledger.phase === "signing";
+
+  async function honorCancel(account: string, tx: string) {
+    setBusy(true);
     setError(null);
     setMessage(null);
-    const account = ledgerAccountId.trim();
-    const tx = cancelTxId.trim();
+    try {
+      await runWhile("waiting", async () => {
+        const res = await fetch("/api/cancel", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            input: { topicId: view.topicId },
+            artifacts: { cancelTxId: tx, ledgerAccountId: account },
+          }),
+        });
+        const body = await res.json();
+        if (!res.ok) throw new Error(JSON.stringify(body.error ?? body));
+        setMessage("Cancel accepted. Schedule deleted and ladder shredded.");
+        // Reflect the terminal state — reload to CANCELLED (StatusCard also polls).
+        if (onRefresh) onRefresh();
+        else if (typeof window !== "undefined") window.location.reload();
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // One-click: sign the 1-tinybar cancel transfer on the device, then honor it.
+  async function deviceCancel() {
+    const tx = await ledger.signTransfer({ memo, amountTinybar: 1 });
+    if (tx && ledger.account) await honorCancel(ledger.account, tx);
+  }
+
+  // Manual fallback: honor a cancel transfer signed out-of-band.
+  async function manualCancel() {
+    const account = manualAccount.trim();
+    const tx = manualTx.trim();
     if (!/^\d+\.\d+\.\d+$/.test(account)) {
       setError("Enter the Ledger account id that signed the cancel transfer (0.0.x).");
       return;
@@ -42,32 +81,7 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
       );
       return;
     }
-    setBusy(true);
-    try {
-      await runWhile(
-        "waiting",
-        async () => {
-          const res = await fetch("/api/cancel", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              input: { topicId: view.topicId },
-              artifacts: { cancelTxId: tx, ledgerAccountId: account },
-            }),
-          });
-          const body = await res.json();
-          if (!res.ok) throw new Error(JSON.stringify(body.error ?? body));
-          setMessage("Cancel accepted. Schedule deleted and ladder shredded.");
-          // Reflect the terminal state — reload to CANCELLED (StatusCard also polls).
-          if (onRefresh) onRefresh();
-          else if (typeof window !== "undefined") window.location.reload();
-        },
-      );
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
+    await honorCancel(account, tx);
   }
 
   return (
@@ -84,28 +98,73 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
       ) : (
         <div className="space-y-2.5">
           <p className="compose__lead">
-            1. On yer Ledger, sign a 1 tinybar transfer to the agent with this exact memo:
+            On yer Ledger, sign a 1 tinybar transfer to the agent with this exact memo:
           </p>
-          <p className="peek__body">{cancelMemo(view.topicId)}</p>
-          <p className="compose__lead">
-            2. Paste the tx id to honor it now — or just leave; the watcher backstop picks
-            up the signed transfer within seconds.
-          </p>
-          <input
-            value={ledgerAccountId}
-            onChange={(e) => setLedgerAccountId(e.target.value)}
-            placeholder="Ledger account id (0.0.x)"
-            className="field"
-          />
-          <input
-            value={cancelTxId}
-            onChange={(e) => setCancelTxId(e.target.value)}
-            placeholder="Cancel tx id (0.0.x-secs-nanos)"
-            className="field"
-          />
-          <button disabled={busy} onClick={submitCancel} className="btn btn--danger w-full">
-            {busy ? "Standin’ down…" : "Honor cancel now"}
-          </button>
+          <p className="peek__body">{memo}</p>
+
+          {/* One-click device path. */}
+          {ledger.supported ? (
+            <div className="space-y-2.5">
+              {ledger.account ? (
+                <p className="compose__note">Ledger account {ledger.account}</p>
+              ) : null}
+              {ledger.prompt ? (
+                <p className="compose__lead flex items-center gap-2">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+                  {ledger.prompt}
+                </p>
+              ) : null}
+              {ledger.error ? (
+                <p className={ledger.error.rejected ? "compose__note" : "compose__err"}>
+                  {ledger.error.message}
+                </p>
+              ) : null}
+
+              {ledger.phase === "idle" || ledger.phase === "connecting" ? (
+                <button
+                  disabled={deviceBusy}
+                  onClick={() => void ledger.connect()}
+                  className="btn btn--danger w-full"
+                >
+                  {ledger.phase === "connecting" ? "Connectin’…" : "Connect yer Ledger & find account"}
+                </button>
+              ) : (
+                <button
+                  disabled={deviceBusy || busy}
+                  onClick={() => void deviceCancel()}
+                  className="btn btn--danger w-full"
+                >
+                  {ledger.phase === "signing" ? "Signin’ on device…" : "Sign cancel on Ledger"}
+                </button>
+              )}
+            </div>
+          ) : null}
+
+          {/* Manual fallback: a transfer signed elsewhere. */}
+          <details className="peek">
+            <summary>Or paste a cancel transaction id signed elsewhere</summary>
+            <div className="mt-3 space-y-2">
+              <input
+                value={manualAccount}
+                onChange={(e) => setManualAccount(e.target.value)}
+                placeholder="Ledger account id (0.0.x)"
+                className="field"
+              />
+              <input
+                value={manualTx}
+                onChange={(e) => setManualTx(e.target.value)}
+                placeholder="Cancel tx id (0.0.x-secs-nanos)"
+                className="field"
+              />
+              <button
+                disabled={busy}
+                onClick={() => void manualCancel()}
+                className="btn btn--danger w-full"
+              >
+                {busy ? "Standin’ down…" : "Honor cancel now"}
+              </button>
+            </div>
+          </details>
         </div>
       )}
     </div>

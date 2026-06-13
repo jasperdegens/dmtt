@@ -24,3 +24,5 @@ public/proRes/
 .idea/
 .vscode/
 *.tsbuildinfo
+
+public/prores/*

@@ -190,6 +190,24 @@ export async function checkin(
       };
     }
 
+    // One check-in is permitted per fixed ladder period. After a successful
+    // check-in from rung L to rung L+1, the next check-in must wait until the
+    // burned rung's original deadline has passed; otherwise a user could double-
+    // tap and advance multiple rungs inside the same assigned period.
+    if (L > 1) {
+      const previousPeriodEndsAt = current.ladder[L - 2].deadline;
+      const now = ctx.now();
+      if (now < previousPeriodEndsAt) {
+        return {
+          next: current,
+          result: fail(
+            "STALE_SEQ",
+            `check-in already used for this period; next check-in opens at ${previousPeriodEndsAt}`,
+          ),
+        };
+      }
+    }
+
     // World-verify the proof + re-enforce the bound nullifier (flag-gated; §4).
     if (ctx.flags.verifyCheckinProof) {
       if (!ctx.worldVerify) {
