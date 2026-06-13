@@ -68,7 +68,7 @@ import {
   type ArmExecutor,
   type CheckinExecutor,
   type CancelExecutor,
-} from "./types";
+} from "./types.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pinned scenario (one armed switch, one check-in performed).
