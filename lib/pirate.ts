@@ -45,10 +45,8 @@ export const SHIP_CLIP = { src: "/ship.webm", poster: "/posters/ship.png" } as c
 export const WAVES_CLIP = { src: "/waves.webm", poster: "/posters/waves.png" } as const;
 
 /** Phase 8: every scripted chat step and action shows for at least this long so the
- *  matching animation + chat feedback can read. Naturally slower work isn't padded.
- *  Sized to comfortably exceed a resting clip's loop (~2.5s) so a transient state always
- *  lingers long enough to reach the captain's next loop boundary and actually be shown. */
-export const MIN_ACTION_MS = 2600;
+ *  matching animation + chat feedback can read. Naturally slower work isn't padded. */
+export const MIN_ACTION_MS = 1600;
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 

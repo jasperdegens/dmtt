@@ -12,25 +12,37 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChatMessage } from "./types.ts";
 
-/** Reveal `text` progressively (typewriter). Each message animates once on mount (keyed by
- *  id upstream). The reveal is time-bounded — longer lines surface more characters per tick
- *  — so it always finishes briskly. Keeps the freshest text in view while it streams. */
-function Typewriter({ text }: { text: string }) {
-  const [count, setCount] = useState(0);
+// Message ids whose typewriter reveal has already PLAYED (once) this session. Survives the
+// chat collapsing/reopening (which remounts the transcript), so a line never streams twice —
+// only the very first time it appears.
+const streamedIds = new Set<string>();
+
+/** Reveal `text` progressively (typewriter) — but only the FIRST time this message id is
+ *  shown; afterwards it renders instantly. The reveal is time-bounded (longer lines surface
+ *  more characters per tick). Keeps the freshest text in view while it streams. */
+function Typewriter({ id, text }: { id: string; text: string }) {
+  const [count, setCount] = useState(() => (streamedIds.has(id) ? text.length : 0));
   const ref = useRef<HTMLSpanElement | null>(null);
 
   useEffect(() => {
+    if (streamedIds.has(id)) {
+      setCount(text.length); // already streamed once — show it whole, no animation
+      return;
+    }
     setCount(0);
     const step = Math.max(1, Math.ceil(text.length / 70)); // ~70 ticks total, any length
     let i = 0;
-    const id = setInterval(() => {
+    const tid = setInterval(() => {
       i = Math.min(text.length, i + step);
       setCount(i);
       ref.current?.closest(".bubble__log")?.scrollTo({ top: 1e9 });
-      if (i >= text.length) clearInterval(id);
+      if (i >= text.length) {
+        clearInterval(tid);
+        streamedIds.add(id); // mark done so a reopen won't replay it
+      }
     }, 26);
-    return () => clearInterval(id);
-  }, [text]);
+    return () => clearInterval(tid);
+  }, [id, text]);
 
   const done = count >= text.length;
   return (
@@ -56,7 +68,7 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
             m.role === "user" ? "msg--me" : m.role === "assistant" ? "msg--cap" : "msg--note",
           ].join(" ")}
         >
-          {m.role === "assistant" ? <Typewriter text={m.text} /> : m.text}
+          {m.role === "assistant" ? <Typewriter id={m.id} text={m.text} /> : m.text}
           {m.links && m.links.length > 0 ? (
             <span className="mt-2 flex flex-col gap-1">
               {m.links.map((l) => (

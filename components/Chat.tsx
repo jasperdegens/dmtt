@@ -72,7 +72,7 @@ const WORLD_ENV: WorldEnvironment =
 const POLL_MS = 10_000;
 
 const INTRO =
-  "Arrr, welcome aboard, ye magnificent doomed soul. I'm Cap'n Mordecai Graves — keeper o' the Deadman's Pact. The bargain's simple: ye trust me with yer last words, an' I loose 'em upon the world ONLY if ye go silent beneath the tides. We forge this pact one step at a time — no rushin'. First up: scrawl yer memo below. I seal it inside yer own browser; the plaintext never reaches this chat nor me servers. Cross me heart, hope to drown.";
+  "Arr! Yer last words — sealed in yer own browser, loosed only if ye fall silent. First, scrawl yer memo below.";
 
 let msgSeq = 0;
 function nextId(): string {
@@ -111,12 +111,12 @@ function describeTerms(t: Terms): string {
 function restoreSummary(v: SwitchView): string {
   const rungs = v.rungHashes.length || v.terms.n;
   if (v.status === "ACTIVE") {
-    return `Ahoy, yer back! Yer pact still stands — rung ${v.liveIdx} o' ${rungs}, ${v.seq} signal(s) sent so far. I kept me eye on it the whole while. Check in below to buy more time, or sign a Ledger transfer to call it off.`;
+    return `Ahoy, yer back! Rung ${v.liveIdx}/${rungs}, ${v.seq} check-in(s). Check in below, or stand it down.`;
   }
   if (v.status === "RELEASED") {
-    return "Ahoy. The tides turned while ye were away — yer switch RELEASED. The chest is open to all now; haul out yer memo below.";
+    return "The tides turned — yer switch RELEASED. Haul out yer memo below.";
   }
-  return "Ahoy. This pact was stood down — its ladder shredded to splinters. Naught left to reveal, matey.";
+  return "This pact was stood down. Naught left to reveal.";
 }
 
 const STATUS_BADGE: Record<SwitchView["status"], string> = {
@@ -159,6 +159,52 @@ export function Chat() {
 
   // The chat collapses to just its header (tap the header to toggle).
   const [collapsed, setCollapsed] = useState(false);
+
+  // Drag the whole chat out of the way by its header. A small move threshold tells a drag
+  // apart from a click (a click toggles collapse); double-click snaps it back to home.
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<{ sx: number; sy: number; bx: number; by: number; moved: boolean } | null>(null);
+  const posRef = useRef(pos);
+  useEffect(() => {
+    posRef.current = pos;
+  }, [pos]);
+  const onDragMove = useCallback((e: PointerEvent) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = e.clientX - d.sx;
+    const dy = e.clientY - d.sy;
+    if (!d.moved && Math.abs(dx) + Math.abs(dy) > 4) d.moved = true;
+    setPos({ x: d.bx + dx, y: d.by + dy });
+  }, []);
+  const onDragEnd = useCallback(() => {
+    const d = dragRef.current;
+    window.removeEventListener("pointermove", onDragMove);
+    window.removeEventListener("pointerup", onDragEnd);
+    if (d && !d.moved) setCollapsed((c) => !c); // a click (no real drag) toggles collapse
+    dragRef.current = null;
+  }, [onDragMove]);
+  const onHeadPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.button !== 0) return; // left button only
+      dragRef.current = {
+        sx: e.clientX,
+        sy: e.clientY,
+        bx: posRef.current.x,
+        by: posRef.current.y,
+        moved: false,
+      };
+      window.addEventListener("pointermove", onDragMove);
+      window.addEventListener("pointerup", onDragEnd);
+    },
+    [onDragMove, onDragEnd],
+  );
+  useEffect(
+    () => () => {
+      window.removeEventListener("pointermove", onDragMove);
+      window.removeEventListener("pointerup", onDragEnd);
+    },
+    [onDragMove, onDragEnd],
+  );
 
   // Keep the latest context in a ref so sequential dispatches never read a stale value.
   const ctxRef = useRef<ChatContext>(context);
@@ -278,7 +324,7 @@ export function Chat() {
   const onCheckedIn = useCallback(
     (result: CheckinResult) => {
       pushAssistant(
-        `Still breathin', I see — good on ye. I've shoved the reckonin' back to ${new Date(result.newDeadline).toUTCString()} (signal ${result.seq}, rung ${result.liveIdx}) an' burned the nearest rung. Back to me watch.`,
+        `Still kickin'! Pushed to ${new Date(result.newDeadline).toUTCString()} (signal ${result.seq}). Back to me watch.`,
       );
       setLivePanel("none"); // collapse the gate back to the action bar
       void refresh();
@@ -286,9 +332,7 @@ export function Chat() {
     [pushAssistant, refresh],
   );
   const onCancelled = useCallback(() => {
-    pushAssistant(
-      "Done — pact stood down. I've torn up the schedule an' shredded the ladder to fish bait. Yer secret sinks with me; nothin' will ever be loosed.",
-    );
+    pushAssistant("Stood down — ladder shredded. Nothin' will ever be loosed.");
     setLivePanel("none");
     void refresh();
   }, [pushAssistant, refresh]);
@@ -357,7 +401,7 @@ export function Chat() {
       );
     } catch (e) {
       pushAssistant(
-        `Blast — I couldn't arm the pact: ${e instanceof Error ? e.message : String(e)}. Nothin' was armed, so no harm done. Patch it up an' give it another go.`,
+        `Couldn't arm: ${e instanceof Error ? e.message : String(e)}. Nothin' lost — try again.`,
       );
     } finally {
       setArming(false);
@@ -373,7 +417,7 @@ export function Chat() {
       window.history.replaceState(null, "", url.toString());
     }
     pushAssistant(
-      `Armed an' afloat (topic ${id})! I'm countin' down to yer next deadline below. Stash this link to sail back any time — check in afore the glass runs out to push it back, or go quiet to loose the secret.`,
+      `Armed (topic ${id})! Check in afore each deadline, or go quiet to loose it. Stash this link to sail back.`,
       [
         { label: "↩ Return to this switch (chat)", href: `/?t=${id}` },
         { label: "Status & reveal page ↗", href: `/s/${id}` },
@@ -397,7 +441,7 @@ export function Chat() {
 
     setTopicId(t);
     setContext({ state: "ARMED", topicId: t });
-    setMessages([{ id: nextId(), role: "assistant", text: `Ahoy again — haulin' up switch ${t} from the depths…` }]);
+    setMessages([{ id: nextId(), role: "assistant", text: `Ahoy again — haulin' up ${t}…` }]);
     setBooted(true);
 
     let cancelled = false;
@@ -408,8 +452,8 @@ export function Chat() {
         if (!res.ok) {
           pushAssistant(
             res.status === 404
-              ? `Hm — no sign o' topic ${t} on the charts yet. It may still be driftin' to the mirror. I'll keep a lookout below.`
-              : `Rough seas loadin' topic ${t} (error ${res.status}). I'll keep tryin' below.`,
+              ? `No sign o' ${t} yet — still driftin' to the mirror. Watchin' below.`
+              : `Rough seas loadin' ${t} (${res.status}). Still tryin' below.`,
           );
           return;
         }
@@ -418,7 +462,7 @@ export function Chat() {
         setView(v);
         pushAssistant(restoreSummary(v), [{ label: "Status & reveal page ↗", href: `/s/${t}` }]);
       } catch {
-        if (!cancelled) pushAssistant(`A squall hit loadin' ${t} — I'll keep tryin' below.`);
+        if (!cancelled) pushAssistant(`A squall hit loadin' ${t} — still tryin'.`);
       }
     })();
     return () => {
@@ -472,14 +516,19 @@ export function Chat() {
   }
 
   return (
-    <div className={`bubble${collapsed ? " bubble--collapsed" : ""}`}>
+    <div
+      className={`bubble${collapsed ? " bubble--collapsed" : ""}`}
+      style={pos.x || pos.y ? { transform: `translate(${pos.x}px, ${pos.y}px)` } : undefined}
+    >
       <div
         className="bubble__head"
         role="button"
         tabIndex={0}
         aria-expanded={!collapsed}
         aria-label={collapsed ? "Expand the chat" : "Collapse the chat"}
-        onClick={() => setCollapsed((c) => !c)}
+        title="Drag to move · click to collapse · double-click to reset"
+        onPointerDown={onHeadPointerDown}
+        onDoubleClick={() => setPos({ x: 0, y: 0 })}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();

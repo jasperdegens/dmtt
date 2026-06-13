@@ -162,26 +162,26 @@ export function reduce(ctx: ChatContext, ev: ChatEvent): ChatContext {
 
 export function narrate(ctx: ChatContext): string {
   if (ctx.error) {
-    return `Belay that! ${ctx.error}. Every step wants its proper token, matey — I'll not be skippin' ahead, no matter how sweetly ye ask.`;
+    return `Belay that — ${ctx.error}. No skippin' ahead.`;
   }
   switch (ctx.state) {
     case "IDLE":
     case "MEMO":
-      return "Right then — scrawl yer last words below, or pin a file to the mast. I lock 'em in a chest inside yer own browser afore aught leaves yer ship; not even ol' Mordecai can sneak a peek. On me peg leg, I swear it.";
+      return "Scrawl yer memo below. I seal it in yer browser — not even I can read it.";
     case "TERMS":
-      return "Sealed an' snug. Now — how often will ye send word that ye still draw breath? Tap a tide below. Miss one full turn o' the glass and the whole network spills yer secret to the world. I've already set a sensible ladder an' a wee bounty; poke the fine print only if ye fancy.";
+      return "How often will ye check in? Miss one turn an' yer secret spills.";
     case "WORLD":
-      return "Terms struck! Next, prove yer a livin' soul an' not some bilge-suckin' script — one tap o' World ID binds this pact to ye an' ye alone. Can't be forged, can't be handed off. That's rather the whole point, aye?";
+      return "Now prove yer a livin' soul — one tap. Can't be faked nor handed off.";
     case "SIGN":
-      return "Yer human — good, I had me doubts. Last deed: sign the funding transfer on yer Ledger. That little slab holds the only key worth a doubloon, an' I never lay a finger on it. Squint at the memo on its wee screen, make sure it matches, then seal the bargain.";
+      return "Last deed: sign it on yer Ledger. That key's yours alone.";
     case "ARMED":
-      return "It be DONE — yer switch is armed an' I'm perched here keepin' watch with me one good eye. Send word afore each deadline an' I'll shove the tide back. Go quiet… an' the deep claims yer secret for all the world to read.";
+      return "Armed! Check in afore each deadline, or the deep takes it.";
     case "CHECKIN":
-      return "Checkin' in shoves the reckonin' back one notch. Prove yer still kickin' with World ID an' I'll burn the nearest rung off yer ladder.";
+      return "Prove yer still kickin' an' I'll buy ye more time.";
     case "CANCEL":
-      return "Standin' the whole pact down, are ye? That wants a transfer signed by yer own Ledger — the only way to call off this old dog. No signature, no mercy.";
+      return "Standin' down wants yer Ledger's signature — nothin' less.";
     default:
-      return "Ready when ye are, captain.";
+      return "Ready when ye are.";
   }
 }
 

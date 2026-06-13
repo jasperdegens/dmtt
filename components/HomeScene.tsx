@@ -13,11 +13,11 @@
 import { useEffect } from "react";
 
 import { Chat } from "./Chat.tsx";
+import { AboutButton } from "./AboutButton.tsx";
 import { PirateProvider } from "./scene/PirateContext.tsx";
 import { SceneBackground } from "./scene/SceneBackground.tsx";
 import { WavesForeground } from "./scene/WavesForeground.tsx";
 import { PirateStage } from "./scene/PirateStage.tsx";
-import { Watch } from "./scene/Watch.tsx";
 
 export function HomeScene() {
   // Lock page scroll while the fixed scene is mounted (panels scroll internally).
@@ -46,7 +46,7 @@ export function HomeScene() {
         </div>
 
         <div className="dock__bottom">
-          <Watch />
+          <AboutButton />
         </div>
       </div>
 
