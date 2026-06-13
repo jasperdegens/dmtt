@@ -24,7 +24,7 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
         >
           <div
             className={[
-              "max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed",
+              "max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm leading-relaxed",
               m.role === "user"
                 ? "bg-emerald-600 text-white"
                 : m.role === "assistant"
@@ -33,6 +33,19 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
             ].join(" ")}
           >
             {m.text}
+            {m.links && m.links.length > 0 ? (
+              <span className="mt-2 flex flex-col gap-1">
+                {m.links.map((l) => (
+                  <a
+                    key={l.href + l.label}
+                    href={l.href}
+                    className="break-all font-medium text-emerald-300 underline underline-offset-2 hover:text-emerald-200"
+                  >
+                    {l.label}
+                  </a>
+                ))}
+              </span>
+            ) : null}
           </div>
         </div>
       ))}

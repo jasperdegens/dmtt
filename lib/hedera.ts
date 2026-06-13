@@ -100,6 +100,13 @@ type FetchLike = (input: string, init?: { headers?: Record<string, string> }) =>
   status: number;
   json: () => Promise<unknown>;
 }>;
+type SleepLike = (ms: number) => Promise<void>;
+
+interface MirrorVerifyRetryOptions {
+  attempts?: number;
+  delayMs?: number;
+  sleep?: SleepLike;
+}
 
 /** The S4 recipe (docs/CONTRACTS.md §7) — the ONLY way arm/cancel are authorized.
  *  Fetch the tx by id and assert all three: result === "SUCCESS"; decoded memo ===
@@ -116,7 +123,7 @@ export async function mirrorVerifyTransfer(
   const expectedMemo = opts.expectedMemo;
   const debitAccountId = opts.debitAccountId;
 
-  const url = `${base.replace(/\/$/, "")}/api/v1/transactions/${encodeURIComponent(txId)}`;
+  const url = `${base.replace(/\/$/, "")}/api/v1/transactions/${encodeURIComponent(mirrorTxId(txId))}`;
   let status = 0;
   let json: unknown = null;
   try {
@@ -162,6 +169,44 @@ export async function mirrorVerifyTransfer(
     consensusTimestamp: tx.consensus_timestamp,
     debitAmountTinybar: debitAmount,
   };
+}
+
+/** The SDK commonly renders TransactionId as "0.0.x@secs.nanos", while the mirror's
+ *  stable `transaction_id` form is "0.0.x-secs-nanos". Accept both at this boundary. */
+export function mirrorTxId(txId: TxId): TxId {
+  const m = txId.match(/^(\d+\.\d+\.\d+)@(\d+)\.(\d{1,9})$/);
+  if (!m) return txId;
+  return `${m[1]}-${m[2]}-${m[3].padStart(9, "0")}`;
+}
+
+function sleepMs(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function shouldRetryMirrorVerify(r: MirrorVerifyResult): boolean {
+  return !r.ok && (r.reason === "not_found" || r.reason === "empty");
+}
+
+/** Mirror nodes can lag the transaction receipt by a few seconds. Retry only when
+ *  the tx is missing/unindexed; once a row exists, wrong memo/debit/result is final. */
+export async function mirrorVerifyTransferWithRetry(
+  base: string,
+  txId: TxId,
+  opts: { expectedMemo?: string; debitAccountId?: AccountIdStr } = {},
+  retry: MirrorVerifyRetryOptions = {},
+  fetchFn: FetchLike = globalThis.fetch as unknown as FetchLike,
+): Promise<MirrorVerifyResult> {
+  const attempts = Math.max(1, Math.floor(retry.attempts ?? 12));
+  const delayMs = Math.max(0, Math.floor(retry.delayMs ?? 1000));
+  const sleep = retry.sleep ?? sleepMs;
+
+  let last: MirrorVerifyResult = notFound();
+  for (let i = 0; i < attempts; i++) {
+    last = await mirrorVerifyTransfer(base, txId, opts, fetchFn);
+    if (!shouldRetryMirrorVerify(last) || i === attempts - 1) return last;
+    if (delayMs > 0) await sleep(delayMs);
+  }
+  return last;
 }
 
 /** Raw mirror tx shape (snake_case from REST). Internal — typed shape is MirrorVerifyResult. */
@@ -433,7 +478,7 @@ export function createHedera(): HederaSurface {
     txId: TxId,
     opts: { expectedMemo?: string; debitAccountId?: AccountIdStr },
   ): Promise<MirrorVerifyResult> {
-    return mirrorVerifyTransfer(mirrorBase(), txId, opts);
+    return mirrorVerifyTransferWithRetry(mirrorBase(), txId, opts);
   }
 
   async function listTopicMessages(topicId: TopicId, afterSeq?: number): Promise<MirrorTopicMessage[]> {
