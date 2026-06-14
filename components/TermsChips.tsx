@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { LADDER_N, type Terms } from "@/lib/types.ts";
+import { DisclosureToggle } from "./DisclosureToggle.tsx";
 
 const INTERVAL_UNITS = [
   { label: "Minute", unit: "minute", seconds: 60 },
@@ -89,14 +90,12 @@ export function TermsChips({
         })}
       </div>
 
-      <button
-        type="button"
-        className="disclosure"
-        onClick={() => setShowFinePrint((v) => !v)}
-        aria-expanded={showFinePrint}
-      >
-        {showFinePrint ? "▾ Hide the fine print" : "▸ Tweak the fine print"}
-      </button>
+      <DisclosureToggle
+        open={showFinePrint}
+        closedLabel="Tweak the fine print"
+        openLabel="Hide the fine print"
+        onToggle={() => setShowFinePrint((v) => !v)}
+      />
 
       {showFinePrint ? (
         <div className="compose__grid">

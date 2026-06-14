@@ -710,17 +710,16 @@ body.scene-locked {
 /* ============================== THE CAPTAIN ============================== */
 /* The captain sits to the RIGHT of the chat. z35 keeps him above the foreground wave
    (z30) and everything in the scene, but below the chat dock (z40) — "over everything
-   except the chat box". Smaller on big screens (capped by the clamp). */
+   except the chat box". */
 .pirate-zone {
   position: fixed;
   top: var(--hero-h);
   right: clamp(0px, 1.5vw, 40px);
   bottom: 0;
   z-index: 35;
-  /* Much bigger on medium + large screens (the 16:9 clip is width-driven, so a wider zone
-     = a larger captain), capped by the clamp's max so he never overruns. Anchored
-     bottom-right; the transparent left of the frame can overlap the chat harmlessly. */
-  width: clamp(360px, 54vw, 1040px);
+  /* Width-driven 16:9 clip. This is 25% larger than the previous desktop/medium sizing
+     (360/54vw/1040 → 450/67.5vw/1300), while narrow portrait overrides below. */
+  width: clamp(450px, 67.5vw, 1300px);
   pointer-events: none;
 }
 /* EVERY clip is mounted at once (PirateStage), preloaded and looping, so a state change
@@ -1593,51 +1592,7 @@ body.scene-locked {
   color: var(--cream);
 }
 
-/* a minimal collapsible (audit trail / ledger memo) */
-.peek > summary {
-  cursor: pointer;
-  list-style: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-family: var(--font-caps);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 0.6rem;
-  color: var(--gold-bright);
-}
-.peek > summary::-webkit-details-marker {
-  display: none;
-}
-/* an explicit expand affordance — a boxed "+" that flips to "−" when open, so the row
-   clearly reads as something you can open (the audit trail, the cancel paste, the memo). */
-.peek > summary::before {
-  content: "+";
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.1em;
-  height: 1.1em;
-  flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
-  border-radius: 4px;
-  font-family: var(--font-ui);
-  font-size: 0.92rem;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--gold-bright);
-  background: color-mix(in srgb, #000 25%, transparent);
-}
-.peek[open] > summary::before {
-  content: "−";
-}
-.peek > summary:hover::before {
-  border-color: var(--gold-bright);
-  color: #fff;
-}
-.peek[open] > summary {
-  margin-bottom: 0.4rem;
-}
+/* shared code/audit box used under disclosure toggles and for ledger memos */
 .peek__body {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 0.72rem;
@@ -1775,8 +1730,8 @@ body.scene-locked {
 }
 
 /* ============================== MEDIUM SCREENS (tablet / small laptop) ============================== */
-/* The galleon looms larger on medium screens; the captain already scales up via his
-   width clamp (44vw). */
+/* The galleon looms larger on medium screens; the captain uses the larger desktop/medium
+   width clamp above. */
 @media (min-width: 901px) and (max-width: 1280px) {
   .ship {
     width: min(160vw, 1520px);

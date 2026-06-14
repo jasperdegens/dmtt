@@ -13,6 +13,7 @@
 
 import { useEffect, useState } from "react";
 import type { SwitchView } from "@/lib/types.ts";
+import { DisclosureToggle } from "./DisclosureToggle.tsx";
 
 const POLL_MS = 10_000;
 
@@ -58,6 +59,7 @@ export function StatusCard({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [polledNow, setPolledNow] = useState<number>(() => Date.now());
+  const [auditOpen, setAuditOpen] = useState(false);
 
   useEffect(() => {
     if (controlled) return; // parent owns the poll; don't open a second loop.
@@ -140,8 +142,13 @@ export function StatusCard({
             <p className="compose__note">Deadline: {new Date(view.currentDeadline).toUTCString()}</p>
           ) : null}
 
-          <details className="peek">
-            <summary>Audit trail · {view.events.length}</summary>
+          <DisclosureToggle
+            open={auditOpen}
+            closedLabel={`Audit trail · ${view.events.length}`}
+            openLabel={`Hide audit trail · ${view.events.length}`}
+            onToggle={() => setAuditOpen((v) => !v)}
+          />
+          {auditOpen ? (
             <ul className="peek__body mt-2 space-y-0.5">
               {view.events.length === 0 ? (
                 <li className="opacity-60">no events yet</li>
@@ -149,7 +156,7 @@ export function StatusCard({
                 view.events.map((e, i) => <li key={i}>· {e.type}</li>)
               )}
             </ul>
-          </details>
+          ) : null}
 
           <a
             href={hashscanTopic(view.topicId)}

@@ -9,10 +9,13 @@
 // wires it to the arm memo/amount. A clearly-labelled, env-gated dev mock keeps the chat
 // flow walkable on machines without a device.
 
+import { useState } from "react";
 import { useLedgerHedera } from "./useLedgerHedera.ts";
 import type { AccountId, TxId } from "@/lib/types.ts";
 import { armMemo } from "@/lib/types.ts";
 import { BusyLabel } from "./BusyLabel.tsx";
+import { DisclosureToggle } from "./DisclosureToggle.tsx";
+import { LedgerAccountField } from "./LedgerAccountField.tsx";
 
 export interface LedgerSigned {
   armTxId: TxId;
@@ -40,6 +43,7 @@ export function LedgerSignCard({
   const ledger = useLedgerHedera();
   const memo = armMemo(policyHash);
   const busy = ledger.phase === "connecting" || ledger.phase === "signing";
+  const [showMemo, setShowMemo] = useState(true);
 
   async function sign() {
     const armTxId = await ledger.signTransfer({ memo, amountHbar: fundingHbar });
@@ -55,10 +59,14 @@ export function LedgerSignCard({
         Display shows the recipient, the amount, and this memo:
       </p>
 
-      <details className="peek" open>
-        <summary>Memo to confirm on the Trusted Display</summary>
-        <p className="peek__body mt-2">{memo}</p>
-      </details>
+      <DisclosureToggle
+        open={showMemo}
+        closedLabel="Show trusted display memo"
+        openLabel="Hide trusted display memo"
+        onToggle={() => setShowMemo((v) => !v)}
+      />
+
+      {showMemo ? <p className="peek__body">{memo}</p> : null}
 
       {!ledger.supported ? (
         <p className="compose__err">
@@ -68,10 +76,7 @@ export function LedgerSignCard({
       ) : null}
 
       {ledger.account ? (
-        <div className="ledger-account" aria-label="Connected Ledger account">
-          <span className="ledger-account__label">Ledger account</span>
-          <code className="ledger-account__value">{ledger.account}</code>
-        </div>
+        <LedgerAccountField account={ledger.account} />
       ) : null}
 
       {ledger.prompt ? (

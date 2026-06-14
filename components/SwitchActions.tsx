@@ -15,6 +15,8 @@ import { useState } from "react";
 import { cancelMemo } from "@/lib/types.ts";
 import type { SwitchView } from "@/lib/types.ts";
 import { BusyLabel } from "./BusyLabel.tsx";
+import { DisclosureToggle } from "./DisclosureToggle.tsx";
+import { LedgerAccountField } from "./LedgerAccountField.tsx";
 import { useLedgerHedera } from "./useLedgerHedera.ts";
 import { usePirate } from "./scene/PirateContext.tsx";
 
@@ -25,6 +27,7 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
   const [error, setError] = useState<string | null>(null);
   const [manualAccount, setManualAccount] = useState("");
   const [manualTx, setManualTx] = useState("");
+  const [manualOpen, setManualOpen] = useState(false);
   const ledger = useLedgerHedera();
   const { runWhile } = usePirate();
 
@@ -107,9 +110,7 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
           {ledger.supported ? (
             <div className="space-y-2.5">
               {ledger.account ? (
-                <p className="compose__note">
-                  Ledger account <span className="acct">{ledger.account}</span>
-                </p>
+                <LedgerAccountField account={ledger.account} />
               ) : null}
               {ledger.prompt ? (
                 <p className="compose__lead flex items-center gap-2">
@@ -156,31 +157,38 @@ export function SwitchActions({ view, onRefresh }: { view: SwitchView; onRefresh
           ) : null}
 
           {/* Manual fallback: a transfer signed elsewhere. */}
-          <details className="peek">
-            <summary>Or paste a cancel transaction id signed elsewhere</summary>
-            <div className="mt-3 space-y-2">
-              <input
-                value={manualAccount}
-                onChange={(e) => setManualAccount(e.target.value)}
-                placeholder="Ledger account id (0.0.x)"
-                className="field"
-              />
-              <input
-                value={manualTx}
-                onChange={(e) => setManualTx(e.target.value)}
-                placeholder="Cancel tx id (0.0.x-secs-nanos)"
-                className="field"
-              />
-              <button
-                disabled={busy}
-                aria-busy={busy}
-                onClick={() => void manualCancel()}
-                className="btn btn--danger w-full"
-              >
-                {busy ? <BusyLabel>Standin’ down</BusyLabel> : "Honor cancel now"}
-              </button>
-            </div>
-          </details>
+          <div className="space-y-2">
+            <DisclosureToggle
+              open={manualOpen}
+              closedLabel="Paste a cancel transaction id signed elsewhere"
+              openLabel="Hide pasted cancel transaction id"
+              onToggle={() => setManualOpen((v) => !v)}
+            />
+            {manualOpen ? (
+              <div className="mt-3 space-y-2">
+                <input
+                  value={manualAccount}
+                  onChange={(e) => setManualAccount(e.target.value)}
+                  placeholder="Ledger account id (0.0.x)"
+                  className="field"
+                />
+                <input
+                  value={manualTx}
+                  onChange={(e) => setManualTx(e.target.value)}
+                  placeholder="Cancel tx id (0.0.x-secs-nanos)"
+                  className="field"
+                />
+                <button
+                  disabled={busy}
+                  aria-busy={busy}
+                  onClick={() => void manualCancel()}
+                  className="btn btn--danger w-full"
+                >
+                  {busy ? <BusyLabel>Standin’ down</BusyLabel> : "Honor cancel now"}
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       )}
     </div>

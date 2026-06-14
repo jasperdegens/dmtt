@@ -6,6 +6,8 @@ DMTT is a funded monitoring agent for encrypted notes/docs. A journalist, whistl
 
 The agent has money and infrastructure authority, but not the secret. It can create topics, schedules, storage refs, and bounty payments; it cannot read the memo early, fake a human check-in, or quietly erase what happened. It's also pirate themed because why not.
 
+Huge thank you to all of the sponsors and EthGlobal -- you all do an amazing job putting on these events!
+
 ## What it does
 
 1. **Encrypts a memo/file locally.** The plaintext never leaves the browser.
@@ -167,15 +169,23 @@ Cancel uses the same pattern with a tiny transfer and memo `DMTT:CANCEL:<topicId
 
 ## Ledger docs feedback
 
-Brief feedback from building DMTT:
+The Ledger team was awesome at helping me through implementation issues during the hackathon. The main feedback is not "the device was bad"; the device security model was exactly why I wanted Ledger in this project. The hard parts were around Hedera-specific developer experience, documentation, and local testing.
 
-- Local testing with the Ledger simulator is too hard to find. It should be visible from the beginner docs and Clear Signing docs.
-- The docs should say clearly whether a developer needs a physical Ledger device, a native Ledger app, the simulator, or some combination.
-- Screenshots of the expected Ledger/device screens would help a lot.
-- The phrase **Live App** is confusing in simulator docs. It sounds like production app development, even when the page is describing a local simulator flow.
-- It would be useful to have a beginner guide specifically for switching between simulator testing and a physical device.
-- LedgerJS maintenance status is confusing: docs say LedgerJS is not maintained, but WebHID-related repos still show recent activity and do not always carry the same warning.
-- More chain coverage examples would help. We had to do extra digging for Hedera because most examples cover ETH, Bitcoin, Solana, and Cosmos.
-- For Hedera specifically, document which transaction types the Ledger app can clear-sign and what fields appear on the trusted display for `CryptoTransfer`.
+Main points:
 
-A longer draft lives in `docs/LEDGER_FEEDBACK.md`.
+- **Simulator setup should be part of the first tutorial path.** The [Clear Signing wallet guide](https://developers.ledger.com/docs/clear-signing/for-wallets) and the [beginner device connection guide](https://developers.ledger.com/docs/device-interaction/beginner/discover_and_connect) are the exact places where I expected a simulated-device flow. This would be especially useful for agent-assisted development: an agent should be able to verify installation, app configuration, APDU shape, and signing flow without requiring the human to plug in a physical device every time. A second beginner guide for "connect to the simulator, sign a test transaction, then switch to a physical device" would remove a lot of debugging friction.
+
+- **There is no official DMK signer kit for Hedera.** Most DMK examples and signer kits are for chains like Ethereum, Bitcoin, Solana, and Cosmos. For DMTT I had to build a small Hedera bridge myself with Claude Code: WebHID transport through DMK, custom APDU commands for the Hedera app, public-key lookup through the Hedera mirror node, and manual signing of Hedera `TransactionBody` bytes. That was the biggest technical challenge of the hackathon. An official `device-signer-kit-hedera` would make this much easier.
+
+- **The Hedera Ledger app can sign only a subset of Hedera transaction types, but that coverage is not clearly documented.** My first design tried to use allowances so the agent could spend from a constrained budget account. In practice, the Ledger Hedera app could sign `CryptoTransfer`, but not the allowance/schedule/topic transaction types. HashPack also confirmed that this path was not available through their Ledger flow:
+
+  ![HashPack support confirmation about Ledger Hedera limitations](/references/hashpackSupport.png)
+
+- **Because there was no Hedera signer kit, I had to use WebHID directly through DMK, and it was unclear what was officially supported.** The docs say LedgerJS is no longer maintained, but WebHID-related packages still appear active...
+
+  ![LedgerJS maintenance note](/references/ledgerJsMaintained.png)
+
+- **Testnet account setup in Ledger Live needs clearer signposting.** I was trying to set up a Hedera testnet account and did not realize I had to enable developer mode in Ledger Live. A small prompt like "Are you trying to add a testnet account?" with a link to the dev-mode instructions would have saved time.
+
+  ![Ledger Live Hedera account setup reference](/references/ledgerWalletHedera.png)
+
