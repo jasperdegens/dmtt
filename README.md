@@ -17,6 +17,14 @@ Huge thank you to all of the sponsors and EthGlobal -- you all do an amazing job
 5. **Releases on silence.** If the deadline passes, Hedera posts `RELEASE_AUTHORIZED`; the monitoring agent publishes the right capsule and pays the bounty.
 6. **Cancels if needed.** The user signs a Ledger-backed cancel transfer; the agent mirror-verifies it, deletes the schedule, and shreds the unreleased ladder.
 
+## Possible use cases
+
+- **Journalist or whistleblower safety.** A source can encrypt evidence and set a public release condition that does not depend on one company, server, or friend honoring a private promise.
+- **Emergency disclosure for researchers, activists, or lawyers.** A sensitive memo can stay sealed while the author is active, then become decryptable if check-ins stop.
+- **Accountability for high-stakes instructions.** A user can pre-commit a signed policy, public audit trail, and release process before entering a risky situation.
+- **Incentive structures and commitment contracts.** The same check-in pattern can be adapted so silence authorizes an action the user wants to avoid. For example, a gym accountability product could require periodic check-ins and charge an extra fee, donate to a disliked cause, or notify an accountability partner if the user misses a check-in. The current MVP releases encrypted information; payment or penalty actions would be a natural extension using a pre-funded escrow or external payment integration.
+
+
 ## How partner tech is used
 
 - **Hedera** — the agent's public clock, audit trail, and payment rail.
@@ -188,4 +196,3 @@ Main points:
 - **Testnet account setup in Ledger Live needs clearer signposting.** I was trying to set up a Hedera testnet account and did not realize I had to enable developer mode in Ledger Live. A small prompt like "Are you trying to add a testnet account?" with a link to the dev-mode instructions would have saved time.
 
   ![Ledger Live Hedera account setup reference](/references/ledgerWalletHedera.png)
-
