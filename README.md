@@ -24,7 +24,6 @@ Huge thank you to all of the sponsors and EthGlobal -- you all do an amazing job
 - **Accountability for high-stakes instructions.** A user can pre-commit a signed policy, public audit trail, and release process before entering a risky situation.
 - **Incentive structures and commitment contracts.** The same check-in pattern can be adapted so silence authorizes an action the user wants to avoid. For example, a gym accountability product could require periodic check-ins and charge an extra fee, donate to a disliked cause, or notify an accountability partner if the user misses a check-in. The current MVP releases encrypted information; payment or penalty actions would be a natural extension using a pre-funded escrow or external payment integration.
 
-
 ## How partner tech is used
 
 - **Hedera** — the agent's public clock, audit trail, and payment rail.
@@ -63,7 +62,6 @@ For this project, I wanted to see how far I could push as a solo hacker using AI
 
 Claude and Codex were used together by splitting tasks between agents, reviewing each other's outputs, and iterating on the protocol and UI.
 
-
 ## Architecture at a glance
 
 ```text
@@ -90,9 +88,52 @@ Public viewer
   └─ reads the capsule + ciphertext, waits for drand, decrypts in-browser
 ```
 
-## Hedera submission notes
+## Market validation and feedback
 
-The README is meant to satisfy the Hedera requirements we found on the ETHGlobal prize page: setup, architecture, and how the funded monitoring agent uses scheduling/payment flows.
+This is still a hackathon MVP, so the honest market status is early validation, not traction. What is validated so far is the technical and developer-risk side: live Hedera testnet spikes proved the schedule clock, HFS/HCS storage, mirror verification, and tlock release path; HashPack confirmed the Ledger allowance route was not available; and Ledger feedback shaped the custom DMK-based Hedera signing path.
+
+Informal anonymous demo feedback on the pirate theme has been positive:
+
+- "The pirate framing makes a scary security product approachable and hilarious."
+- "I remembered the product because of the captain. Captain John Lockbeard is my guy."
+- "Will use for my wifi passwords."
+
+The next feedback loop is deliberately narrow:
+
+- **Digital-safety users:** interview journalists, researchers, and activists on whether a public release condition is useful or too dangerous without a trusted support org.
+- **Legal and compliance reviewers:** test whether the release/cancel semantics are explainable enough for lawyers, estate planners, or whistleblower support teams.
+- **Commitment-contract users:** pilot a lower-risk version, such as gym or study check-ins, where a missed check-in triggers a fee, donation, or notification instead of publishing sensitive material.
+- **Hedera builders:** validate whether the schedule-as-clock and mirror-verified transfer pattern is reusable for other agentic workflows.
+
+## Business model and go-to-market
+
+The first commercial wedge is a hosted funded-monitoring service: users prepay the agent at arm time, and the service charges a small platform fee on top of Hedera network costs. Institutional customers, such as investigative nonprofits, legal clinics, or high-risk research teams, could pay for managed setup, rehearsal switches, and operational support.
+
+The broader go-to-market path is to start with safer commitment-contract use cases, prove the check-in UX and reliability, then move into higher-stakes disclosure workflows with partners who already support at-risk users. Future revenue could come from per-switch fees, organization subscriptions, optional per-check-in service fees, and a courier/watchtower network that pays independent operators to verify releases.
+
+## Hedera network impact
+
+Every switch creates real Hedera activity; Hedera is not just a lookup layer.
+
+- **Small memo arm:** about 5 transactions: Ledger funding `CryptoTransfer`, immutable HFS `FileCreate`, audit `TopicCreate`, `ARMED` `TopicMessageSubmit`, and `ScheduleCreate`.
+- **Large memo arm:** the small-memo path plus a dedicated HCS storage topic and one `TopicMessageSubmit` per ciphertext chunk.
+- **Each check-in:** about 3+ transactions: new `ScheduleCreate`, old `ScheduleDelete`, and one or more HCS messages for `CHECKIN_VERIFIED`.
+- **Release:** about 4 transactions: scheduled `RELEASE_AUTHORIZED`, `CAPSULE_PUBLISHED`, release-bounty `CryptoTransfer`, and `BULLETIN`.
+- **Cancel:** about 3 transactions: Ledger cancel `CryptoTransfer`, `ScheduleDelete`, and `CANCELLED`.
+
+At usage scale, DMTT would drive recurring HCS traffic, schedule creation/deletion, mirror reads, and HBAR transfers. It also gives Hedera exposure to non-DeFi users: journalists, NGOs, legal teams, safety researchers, and accountability-product builders.
+
+## Demo checklist
+
+1. Open the app and write a short memo. Show that plaintext stays in the browser.
+2. Choose terms, prove personhood with World ID, and sign the arm funding transfer on Ledger.
+3. Show the new Hedera topic on HashScan with `ARMED` and the active scheduled release.
+4. Run `pnpm watcher` and perform a check-in. Confirm the deadline advances and the old schedule is deleted.
+5. Let a short demo deadline pass. Show Hedera posting `RELEASE_AUTHORIZED`, then the watcher publishing `CAPSULE_PUBLISHED`, paying the bounty, and posting `BULLETIN`.
+6. Open the public switch page and reveal the memo in-browser after the tlock round has passed.
+7. On a second switch, sign `DMTT:CANCEL:<topicId>` on Ledger and show `CANCELLED`.
+
+## Hedera submission notes
 
 DMTT uses native Hedera services directly (no solidity used):
 
