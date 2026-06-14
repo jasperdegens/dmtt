@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "Hedera Hackathon Submission Validator": {
+      "source": "hedera-dev/hedera-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/hackathon-helper/skills/validate-submission/SKILL.md",
+      "computedHash": "1031b8d9e3936fad93269855d35932c2d61e28a6c54bcbeb1aa126225da366ea"
+    },
     "dmk-business-logic": {
       "source": "ledgerhq/agent-skills",
       "sourceType": "github",
